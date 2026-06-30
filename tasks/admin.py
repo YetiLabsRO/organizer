@@ -1,7 +1,7 @@
 from django.contrib import admin
 from django.utils.safestring import mark_safe
 
-from tasks.models import TaskItem, Project, Tag
+from tasks.models import Project, Tag, TaskItem
 
 
 class TagAdmin(admin.ModelAdmin):

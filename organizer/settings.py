@@ -12,20 +12,36 @@ https://docs.djangoproject.com/en/3.2/ref/settings/
 
 from pathlib import Path
 
+from decouple import AutoConfig, Config, Csv, RepositoryEnv
+
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
+
+# Anchor python-decouple to the .env beside the project root instead of letting
+# AutoConfig discover one relative to the ambient cwd / entrypoint. OS environment
+# variables still take precedence (Config checks os.environ before the file), so
+# prod / CI that inject real env vars are unchanged. Falls back to AutoConfig when
+# no .env file exists (pure-env containers / CI). See .env.example for the keys.
+_ENV_FILE = BASE_DIR / ".env"
+if _ENV_FILE.is_file():
+    config = Config(RepositoryEnv(str(_ENV_FILE)))
+else:
+    config = AutoConfig()
 
 
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/3.2/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = 'django-insecure-r8^--b8z3)vvs=eonw90b=u+(#jgyy4%f6vt#@zn@ww@#v30s1'
+SECRET_KEY = config(
+    "SECRET_KEY",
+    default="django-insecure-r8^--b8z3)vvs=eonw90b=u+(#jgyy4%f6vt#@zn@ww@#v30s1",
+)
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+DEBUG = config("DEBUG", default=True, cast=bool)
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = config("ALLOWED_HOSTS", default="", cast=Csv())
 
 
 # Application definition
@@ -43,7 +59,7 @@ INSTALLED_APPS = [
     'rest_framework',
     'rest_framework.authtoken',
     'rest_framework_sso',
-    'rest_auth',
+    'dj_rest_auth',
 
     'corsheaders',
 
@@ -112,8 +128,6 @@ TIME_ZONE = 'UTC'
 
 USE_I18N = True
 
-USE_L10N = True
-
 USE_TZ = True
 
 # Default primary key field type
@@ -125,11 +139,11 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.postgresql',
-        'NAME': 'organizer2',
-        'USER': 'yeti_db',
-        'PASSWORD': 'sql123.',
-        'HOST': '127.0.0.1',
-        'PORT': '5432',
+        'NAME': config("DB_NAME", default="organizer"),
+        'USER': config("DB_USER", default="organizer"),
+        'PASSWORD': config("DB_PASSWORD", default=""),
+        'HOST': config("DB_HOST", default="127.0.0.1"),
+        'PORT': config("DB_PORT", default=5432, cast=int),
     }
 }
 
@@ -164,8 +178,8 @@ REST_FRAMEWORK = {
     )
 }
 
-REST_AUTH_SERIALIZERS = {
-    "TOKEN_SERIALIZER": "tasks.serializers.UserTokenSerializer",
+REST_AUTH = {
+    "TOKEN_SERIALIZER": "tasks.api.serializers.UserTokenSerializer",
 }
 
 REST_FRAMEWORK_SSO = {
@@ -179,13 +193,10 @@ REST_FRAMEWORK_SSO = {
     }
 }
 
-CORS_ALLOWED_ORIGINS = [
-    'http://localhost:4200',
-]
-
-try:
-    from .local_settings import *
-except ImportError:
-    pass
+CORS_ALLOWED_ORIGINS = config(
+    "CORS_ALLOWED_ORIGINS",
+    default="http://localhost:4200",
+    cast=Csv(),
+)
 
 

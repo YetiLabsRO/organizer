@@ -1,13 +1,13 @@
 from django.db.models import Q
 from django_filters import rest_framework as filters
 
-from tasks.models import TaskItem, Tag
+from tasks.models import Tag, TaskItem
 
 
 class OrLookupFilter(filters.CharFilter):
     def __init__(self, lookup_dict=None, *args, **kwargs):
         self.lookup_dict = lookup_dict
-        super(OrLookupFilter, self).__init__(*args, **kwargs)
+        super().__init__(*args, **kwargs)
 
     def filter(self, qs, value):
         if not value:

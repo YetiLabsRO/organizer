@@ -1,0 +1,40 @@
+<h1> Tags <small class="text-muted">organize your work</small>
+  <div class = "float-end btn-group btn-group-sm" role="toolbar" aria-label="task toolbar">
+      <button type="button" class="btn btn-primary" routerLink="/tags/create/">
+        <svg class="bi" width="12" height="12" role="img" aria-label="e" fill="currentColor">
+          <use xlink:href="bootstrap-icons/bootstrap-icons.svg#plus-square"></use>
+        </svg>
+      </button>
+  </div>
+</h1>
+
+<ul class = "list-group border-0">
+  @for (tag of tags(); track tag.id) {
+    <li class = "list-group-item border-0" (click)="onSelect(tag)">
+      <div class = "row">
+        <div class = "col-3">
+          <a routerLink="/tags/{{ tag.id }}/"><span style="background-color: {{ tag.color }}; color: {{ tag | tagColor }}" class="badge m-1 tag">{{ tag.name }}</span> <span class = "badge rounded-pill bg-light text-dark">{{ tag.count }}</span></a>
+        </div>
+        <div class = "col-7">
+          {{ tag.description }}
+        </div>
+        <div class = "col-2">
+          <div class = "btn-group btn-group-sm" role="toolbar" aria-label="task toolbar">
+            <button type="button" class="btn btn-secondary" routerLink="/tags/{{ tag.id }}">
+              <svg class="bi" width="12" height="12" role="img" aria-label="e" fill="currentColor">
+                <use xlink:href="bootstrap-icons/bootstrap-icons.svg#pencil"></use>
+              </svg>
+            </button>
+          </div>
+          <div class = "btn-group btn-group-sm ms-1" role="toolbar" aria-label="task toolbar delete">
+            <button type="button" class="btn btn-danger">
+              <svg class="bi" width="12" height="12" role="img" aria-label="Trashcan" fill="currentColor">
+                <use xlink:href="bootstrap-icons/bootstrap-icons.svg#trash"></use>
+              </svg>
+            </button>
+          </div>
+        </div>
+      </div>
+    </li>
+  }
+</ul>

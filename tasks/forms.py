@@ -1,6 +1,7 @@
 from django import forms
 from goodies.forms import CrispyBaseModelForm
 from goodies.widgets import BootstrapDateTimeInput
+
 from tasks.models import TaskItem
 
 __author__ = 'andrei'

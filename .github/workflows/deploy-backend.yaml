@@ -1,0 +1,160 @@
+name: deploy-backend
+
+# Deploys the Django API to production on push to `develop` (the branch the
+# production server tracks). Inspired by the weinland / volunhub deploy workflows.
+#
+# Required GitHub config (Settings → Secrets and variables → Actions):
+#   Variables: SSH_USER, SSH_HOST, SSH_PORT, DEPLOY_PATH (e.g. /var/app/organizer),
+#              RESTART_COMMAND (e.g. "sudo supervisorctl restart organizer")
+#   Secrets:   SSH_KEY (private key authorised on the server)
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [develop]
+    paths:
+      - '**.py'
+      - 'requirements.txt'
+      - 'pyproject.toml'
+      - 'uv.lock'
+      - 'manage.py'
+      - 'organizer/**'
+      - 'tasks/**'
+      - '.github/workflows/deploy-backend.yaml'
+  pull_request:
+    branches: [develop]
+    types: [opened, synchronize, reopened]
+    paths:
+      - '**.py'
+      - 'requirements.txt'
+      - 'pyproject.toml'
+      - 'uv.lock'
+      - 'manage.py'
+      - 'organizer/**'
+      - 'tasks/**'
+      - '.github/workflows/deploy-backend.yaml'
+
+jobs:
+  test:
+    name: Run tests
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_DB: organizer
+          POSTGRES_USER: yeti_db
+          POSTGRES_PASSWORD: postgres
+        ports:
+          - 5432/tcp
+        options: >-
+          --health-cmd "pg_isready -U yeti_db -d organizer"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
+
+      - name: Set up Python
+        run: uv python install 3.12
+
+      - name: Install system dependencies
+        run: sudo apt-get update && sudo apt-get install -y libpq-dev gcc
+
+      - name: Install dependencies
+        run: uv sync
+
+      - name: Run Django checks and tests
+        env:
+          SECRET_KEY: ci-secret-key-not-used-in-prod
+          DEBUG: 'False'
+          ALLOWED_HOSTS: localhost,127.0.0.1
+          DB_NAME: organizer
+          DB_USER: yeti_db
+          DB_PASSWORD: postgres
+          DB_HOST: 127.0.0.1
+          DB_PORT: ${{ job.services.postgres.ports['5432'] }}
+        run: |
+          uv run python manage.py check
+          uv run python manage.py migrate --noinput
+          uv run python manage.py test --verbosity=2
+
+  deploy:
+    name: Deploy to production
+    runs-on: ubuntu-latest
+    environment: production
+    needs: test
+    if: github.event_name == 'workflow_dispatch' || (github.event_name == 'push' && github.ref == 'refs/heads/develop')
+    steps:
+      - name: Configure SSH
+        env:
+          SSH_USER: ${{ vars.SSH_USER }}
+          SSH_KEY: ${{ secrets.SSH_KEY }}
+          SSH_HOST: ${{ vars.SSH_HOST }}
+          SSH_PORT: ${{ vars.SSH_PORT }}
+        run: |
+          mkdir -p ~/.ssh/
+          echo "$SSH_KEY" > ~/.ssh/production.key
+          chmod 600 ~/.ssh/production.key
+          cat >>~/.ssh/config <<END
+          Host production
+            HostName $SSH_HOST
+            Port $SSH_PORT
+            User $SSH_USER
+            IdentityFile ~/.ssh/production.key
+            StrictHostKeyChecking no
+          END
+
+      - name: Back up production database
+        env:
+          DEPLOY_PATH: ${{ vars.DEPLOY_PATH }}
+        run: |
+          ssh production 'bash -s' <<REMOTE_SCRIPT
+          set -euo pipefail
+          DUMP_DIR=/var/backups/organizer
+          mkdir -p "\$DUMP_DIR"
+          cd "${DEPLOY_PATH}"
+          # Load DB_* from the app's .env so pg_dump can connect.
+          set -a; . ./.env; set +a
+          TIMESTAMP=\$(date -u +%Y%m%d_%H%M%SZ)
+          OUT="\$DUMP_DIR/organizer_prod_\${TIMESTAMP}.dump"
+          echo "Dumping \${DB_NAME} to \$OUT"
+          PGPASSWORD="\${DB_PASSWORD:-}" pg_dump \
+            -h "\${DB_HOST:-127.0.0.1}" -p "\${DB_PORT:-5432}" \
+            -U "\${DB_USER}" -d "\${DB_NAME}" -F c -f "\$OUT"
+          # Retain only this workflow's dumps older than 7 days.
+          find "\$DUMP_DIR" -maxdepth 1 -type f -regextype posix-extended \
+            -regex '.*/organizer_prod_[0-9]{8}_[0-9]{6}Z\.dump' -mtime +7 -print -delete
+          REMOTE_SCRIPT
+
+      - name: Update source
+        run: ssh production 'cd ${{ vars.DEPLOY_PATH }} && git fetch && git reset --hard origin/develop'
+
+      - name: Install Python dependencies
+        run: ssh production 'cd ${{ vars.DEPLOY_PATH }} && .venv/bin/pip install -r requirements.txt'
+
+      - name: Collect static files
+        run: ssh production 'cd ${{ vars.DEPLOY_PATH }} && .venv/bin/python manage.py collectstatic --noinput'
+
+      - name: Check for pending migrations
+        id: check_migrations
+        run: |
+          ssh production 'cd ${{ vars.DEPLOY_PATH }} && .venv/bin/python manage.py showmigrations' > migrations_list.txt
+          if grep -q "\[ \]" migrations_list.txt; then
+            echo "pending_migrations=true" >> $GITHUB_OUTPUT
+          else
+            echo "pending_migrations=false" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Run migrations (if any)
+        if: steps.check_migrations.outputs.pending_migrations == 'true'
+        run: ssh production 'cd ${{ vars.DEPLOY_PATH }} && .venv/bin/python manage.py migrate --noinput'
+
+      - name: Restart service
+        if: ${{ always() }}
+        run: ssh production "${{ vars.RESTART_COMMAND || 'sudo systemctl restart organizer' }}"

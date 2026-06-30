@@ -1,10 +1,9 @@
 from dj_rest_auth.serializers import TokenSerializer
+from rest_framework import serializers
 from rest_framework.authtoken.models import Token
 from rest_framework.relations import PrimaryKeyRelatedField
 
-from tasks.models import TaskItem, Tag, Project, TaskComment
-from rest_framework import serializers
-
+from tasks.models import Project, Tag, TaskComment, TaskItem
 
 __author__ = 'andrei'
 
