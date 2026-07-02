@@ -136,14 +136,33 @@ USE_TZ = True
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 
+# Per-worktree test-database plumbing (see bin/wt). Both keys default to Django's
+# standard behavior, so prod and the main checkout are unchanged (neither sets them):
+#   DB_TEST_NAME     — explicit test DB name (default: test_<DB_NAME>). bin/wt writes
+#                      test_<worktree_db> into each worktree's .env, keeping the
+#                      test-DB name explicit and unique per worktree.
+#   TEST_DB_TEMPLATE — a prebuilt Postgres template DB to clone the test DB from
+#                      instead of replaying every migration on cold build. Left unset
+#                      unless the template exists (Django's PG backend would fail
+#                      CREATE … WITH TEMPLATE on a missing name); `bin/wt template
+#                      refresh` builds it and `bin/wt new` auto-sets this in a
+#                      worktree's .env when it's present.
+_DB_NAME = config("DB_NAME", default="organizer")
+_TEST_DB_TEMPLATE = config("TEST_DB_TEMPLATE", default="")
+
+_test_config = {"NAME": config("DB_TEST_NAME", default=f"test_{_DB_NAME}")}
+if _TEST_DB_TEMPLATE:
+    _test_config["TEMPLATE"] = _TEST_DB_TEMPLATE
+
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.postgresql',
-        'NAME': config("DB_NAME", default="organizer"),
+        'NAME': _DB_NAME,
         'USER': config("DB_USER", default="organizer"),
         'PASSWORD': config("DB_PASSWORD", default=""),
         'HOST': config("DB_HOST", default="127.0.0.1"),
         'PORT': config("DB_PORT", default=5432, cast=int),
+        'TEST': _test_config,
     }
 }
 
