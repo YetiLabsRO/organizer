@@ -78,6 +78,39 @@ Configuration is read from a `.env` file at the repo root via **python-decouple*
 Real OS environment variables take precedence over the file, so prod/CI inject them directly.
 Postgres is the only supported database (`psycopg` v3).
 
+## Worktrees
+
+Use `bin/wt` to create and tear down git worktrees — never run `git worktree add/remove`
+directly. The wrapper provisions a **per-worktree Postgres DB** (seeded from your main DB via
+`pg_dump`), a uv-managed in-tree `.venv` (`uv sync` from `uv.lock`; deps hardlinked from uv's
+shared cache, so each worktree adds almost no disk), a fresh `.env` (patched `DB_NAME` +
+`DB_TEST_NAME`), a generated `.envrc` that activates `$PWD/.venv`, and copies
+`.claude/settings.local.json` so the agent keeps its permissions. Requires `uv` and `pg_dump`
+on PATH.
+
+- `bin/wt new <branch> [path]` — create (branches off **fresh `origin/develop`**; path defaults to
+  `.claude/worktrees/<slug>`). Override the base with `WT_BASE_BRANCH=<branch> bin/wt new …`.
+- `bin/wt rm <path> [--force]` — drop the DB + worktree (the in-tree `.venv` goes with the dir).
+- `bin/wt sync [path]` — rebase the worktree branch onto fresh `origin/develop` and check the
+  migration graph is single-leaf. **Run right before finalizing a PR**, then regenerate migrations.
+- `bin/wt prune [--force]` — drop `<main_db>_*` Postgres DBs orphaned by worktrees removed without
+  `wt rm`; dry-run unless `--force` (refuses if any live worktree's DB name is unresolvable).
+- `bin/wt template <refresh|check>` — maintain a shared `<main_db>_test_template` Postgres DB so
+  cold test-DB builds clone (`CREATE DATABASE … WITH TEMPLATE …`) instead of replaying every
+  migration. `refresh` drops + recreates + migrates it; `check` prints whether it exists.
+  `settings.py` honours `TEST_DB_TEMPLATE` via Django's `TEST["TEMPLATE"]`, and `bin/wt new`
+  auto-sets that env var in new worktrees whenever the template is present. Refresh after new
+  migrations land on `develop`.
+- `bin/wt ls` — list worktrees.
+
+The slug is the branch name lowercased with non-alphanumerics → `_`; it names the DB
+`<main_db>_<slug>` and the test DB `test_<main_db>_<slug>`. After `cd`-ing into a worktree,
+`direnv` activates its in-tree `.venv` automatically. `python-decouple` is anchored to
+`BASE_DIR/.env` (see `settings.py`), so each worktree reads its own `.env` regardless of cwd — no
+per-worktree DB collisions. `bin/wt` provisions the **backend** only; to run the Angular SPA from a
+worktree, `cd frontend && npm install` there, and pass explicit ports when running servers
+(`manage.py runserver 0.0.0.0:8001`, `ng serve --port 4300`) to avoid clashing with other worktrees.
+
 ## Conventions
 
 - **Python/Django**: follow `.junie/guidelines.md` (PEP 8, 120-col, double quotes, isort, CBVs,
