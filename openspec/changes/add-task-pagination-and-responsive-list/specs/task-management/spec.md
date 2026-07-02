@@ -47,13 +47,18 @@ paginable request.
 ## MODIFIED Requirements
 
 ### Requirement: Task ordering
-The system SHALL allow tasks to carry an integer `order` and SHALL return tasks ordered by `order`,
-then descending priority, then start date, then change/creation date, with the task primary key as a
-final tiebreaker so the ordering is deterministic and pagination is stable across requests.
+The system SHALL return tasks ordered by most recently changed first (`changed_date` descending),
+with the task primary key as a final tiebreaker so the ordering is deterministic and pagination is
+stable across requests. Because `changed_date` is updated on every save, editing or toggling a task
+SHALL move it to the top of the list.
 
-#### Scenario: Tasks returned in order
+#### Scenario: Tasks returned most-recently-changed first
 - **WHEN** an authenticated user lists `/api/task/`
-- **THEN** tasks are returned sorted by `order`, then by priority and dates, with `pk` breaking ties
+- **THEN** tasks are returned sorted by `changed_date` descending, with `pk` breaking ties
+
+#### Scenario: Editing a task floats it to the top
+- **WHEN** an authenticated user updates or toggles a task
+- **THEN** that task appears first on the next listing
 
 #### Scenario: Stable ordering across pages
 - **WHEN** an authenticated user requests successive pages of `/api/task/`

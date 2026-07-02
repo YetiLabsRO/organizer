@@ -53,9 +53,10 @@ class TaskItem(models.Model):
     for_today = models.BooleanField(default=False)
 
     class Meta:
-        # `pk` is a deterministic final tiebreaker so limit/offset pages are stable (no
-        # duplicated/skipped rows across requests when earlier keys tie).
-        ordering = ["order", "-priority", "-start_date", "-changed_date", "-created_date", "pk"]
+        # Most-recently-changed first. `changed_date` is auto_now, so any edit/toggle floats a
+        # task to the top; `-pk` is a deterministic final tiebreaker so limit/offset pages stay
+        # stable (no duplicated/skipped rows across requests when changed_date ties).
+        ordering = ["-changed_date", "-pk"]
 
     def __str__(self):
         return self.title
