@@ -114,23 +114,30 @@ jobs:
         env:
           DEPLOY_PATH: ${{ vars.DEPLOY_PATH }}
         run: |
-          ssh production 'bash -s' <<REMOTE_SCRIPT
+          ssh production "DEPLOY_PATH='${DEPLOY_PATH}' bash -s" <<'REMOTE_SCRIPT'
           set -euo pipefail
           # Keep dumps under the deploy user's HOME: a non-interactive CI ssh session has no TTY
           # to enter a sudo password, so it cannot create/write a root-owned dir like /var/backups.
-          DUMP_DIR="\${BACKEND_DUMP_DIR:-\$HOME/backups/organizer}"
-          mkdir -p "\$DUMP_DIR"
-          cd "${DEPLOY_PATH}"
-          # Load DB_* from the app's .env so pg_dump can connect.
-          set -a; . ./.env; set +a
-          TIMESTAMP=\$(date -u +%Y%m%d_%H%M%SZ)
-          OUT="\$DUMP_DIR/organizer_prod_\${TIMESTAMP}.dump"
-          echo "Dumping \${DB_NAME} to \$OUT"
-          PGPASSWORD="\${DB_PASSWORD:-}" pg_dump \
-            -h "\${DB_HOST:-127.0.0.1}" -p "\${DB_PORT:-5432}" \
-            -U "\${DB_USER}" -d "\${DB_NAME}" -F c -f "\$OUT"
+          DUMP_DIR="${BACKEND_DUMP_DIR:-$HOME/backups/organizer}"
+          mkdir -p "$DUMP_DIR"
+          cd "$DEPLOY_PATH"
+          # Read DB_* from the app's .env WITHOUT sourcing it: decouple values (e.g. SECRET_KEY)
+          # can contain characters like ')' that break `.` / `source`.
+          while IFS='=' read -r _k _v; do
+            case "$_k" in
+              DB_NAME|DB_USER|DB_PASSWORD|DB_HOST|DB_PORT)
+                _v="${_v%\"}"; _v="${_v#\"}"; _v="${_v%\'}"; _v="${_v#\'}"
+                export "$_k=$_v" ;;
+            esac
+          done < ./.env
+          TIMESTAMP=$(date -u +%Y%m%d_%H%M%SZ)
+          OUT="$DUMP_DIR/organizer_prod_${TIMESTAMP}.dump"
+          echo "Dumping ${DB_NAME:-?} to $OUT"
+          PGPASSWORD="${DB_PASSWORD:-}" pg_dump \
+            -h "${DB_HOST:-127.0.0.1}" -p "${DB_PORT:-5432}" \
+            -U "${DB_USER}" -d "${DB_NAME}" -F c -f "$OUT"
           # Retain only this workflow's dumps older than 7 days.
-          find "\$DUMP_DIR" -maxdepth 1 -type f -regextype posix-extended \
+          find "$DUMP_DIR" -maxdepth 1 -type f -regextype posix-extended \
             -regex '.*/organizer_prod_[0-9]{8}_[0-9]{6}Z\.dump' -mtime +7 -print -delete
           REMOTE_SCRIPT
 
