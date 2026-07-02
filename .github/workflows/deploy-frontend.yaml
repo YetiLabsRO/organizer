@@ -79,11 +79,15 @@ jobs:
       - name: Unpack into web root
         if: github.event_name == 'workflow_dispatch' || (github.event_name == 'push' && github.ref == 'refs/heads/develop')
         run: |
+          # No sudo: the deploy user owns $WEB_ROOT (one-time on the server:
+          #   sudo mkdir -p /var/www/organizer
+          #   sudo chown -R "$USER" /var/www/organizer
+          # ). A non-interactive CI ssh session has no TTY to enter a sudo password.
           ssh production '
             set -euo pipefail
             WEB_ROOT="${{ vars.FRONTEND_WEB_ROOT }}"
-            sudo mkdir -p "$WEB_ROOT"
-            sudo rm -rf "${WEB_ROOT:?}/"*
-            sudo tar xzf organizer-dist.tar.gz -C "$WEB_ROOT"
+            mkdir -p "$WEB_ROOT"
+            rm -rf "${WEB_ROOT:?}/"*
+            tar xzf organizer-dist.tar.gz -C "$WEB_ROOT"
             rm -f organizer-dist.tar.gz
           '
