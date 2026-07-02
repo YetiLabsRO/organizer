@@ -82,8 +82,6 @@ untouched legacy DB. Because you never mutated it, rollback is immediate and los
   since added users with specific per-object permissions, re-grant them in the admin after cutover.
 - **API tokens carry over** (the `authtoken_token` row is imported), so existing API clients keep
   working. Browser **sessions do not** — users just log in again.
-- **Scoutfile SSO** needs `keys/scoutfile-2023.pem` on the server (gitignored). Token login works
-  without it; only JWT/SSO login needs it.
 - **Frontend origin**: the prod build uses same-origin (`apiBase: ''`). If the SPA is served from a
   different host than the API, set `apiBase` and add that origin to `CORS_ALLOWED_ORIGINS`.
 

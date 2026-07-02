@@ -4,12 +4,6 @@ asgiref==3.11.1
     # via
     #   django
     #   django-cors-headers
-cffi==2.0.0 ; platform_python_implementation != 'PyPy'
-    # via cryptography
-cryptography==48.0.0
-    # via
-    #   djangorestframework-sso
-    #   organizer
 dj-rest-auth==7.2.0
     # via organizer
 django==6.0.6
@@ -19,7 +13,6 @@ django==6.0.6
     #   django-filter
     #   django-model-utils
     #   djangorestframework
-    #   djangorestframework-sso
     #   organizer
 django-cors-headers==4.9.0
     # via organizer
@@ -30,22 +23,11 @@ django-model-utils==5.0.0
 djangorestframework==3.17.1
     # via
     #   dj-rest-auth
-    #   djangorestframework-sso
     #   organizer
-djangorestframework-sso==0.6.0
-    # via organizer
-pem==23.1.0
-    # via djangorestframework-sso
 psycopg==3.3.4
     # via organizer
 psycopg-binary==3.3.4 ; implementation_name != 'pypy'
     # via psycopg
-pycparser==3.0 ; implementation_name != 'PyPy' and platform_python_implementation != 'PyPy'
-    # via cffi
-pyjwt==2.13.0
-    # via
-    #   djangorestframework-sso
-    #   organizer
 python-decouple==3.8
     # via organizer
 sqlparse==0.5.5

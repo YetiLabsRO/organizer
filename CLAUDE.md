@@ -42,15 +42,10 @@ consolidated in-tree from the now-deprecated `organizer-ui` repository.
 
 ## Authentication
 
-Two mechanisms, both configured in `organizer/settings.py` `REST_FRAMEWORK`:
-
-1. **DRF Token** — login via dj-rest-auth at `/rest-auth/login/`. The token payload is customized by
-   `UserTokenSerializer` (`tasks/api/serializers.py`) returning `{key, user, role}`
-   (wired via `REST_AUTH["TOKEN_SERIALIZER"]`). This is what the Angular app uses.
-2. **Scoutfile SSO (JWT, RS256)** — `djangorestframework-sso` verifies tokens from the `scoutfile`
-   issuer using a public key in `keys/scoutfile-2023.pem`. `tasks/utils.authenticate_payload`
-   maps a JWT to a `{issuer}_{user_id}` user. `keys/` is gitignored; SSO login fails without the key
-   but the rest of the app runs fine.
+**DRF Token** — login via dj-rest-auth at `/rest-auth/login/`, configured in `organizer/settings.py`
+`REST_FRAMEWORK`. The token payload is customized by `UserTokenSerializer`
+(`tasks/api/serializers.py`) returning `{key, user, role}` (wired via
+`REST_AUTH["TOKEN_SERIALIZER"]`). This is what the Angular app uses.
 
 All API endpoints require authentication (`IsAuthenticated` default permission).
 
