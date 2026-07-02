@@ -1,4 +1,8 @@
+from io import StringIO
+
 from django.contrib.auth import get_user_model
+from django.core.management import call_command
+from django.test import TestCase
 from django.utils import timezone
 from rest_framework.test import APITestCase
 
@@ -76,3 +80,44 @@ class TaskListPaginationTests(APITestCase):
         titles = {t["title"] for t in response.data["results"]}
         self.assertEqual(titles, {"focus", "done"})
         self.assertIn(focus.pk, {t["id"] for t in response.data["results"]})
+
+
+class BackfillTaskOwnerCommandTests(TestCase):
+    """The ownership backfill used to un-hide legacy tasks after owner scoping."""
+
+    def test_dry_run_changes_nothing(self):
+        User.objects.create_user(username="target")
+        task = TaskItem.objects.create(title="orphan")
+
+        call_command("backfill_task_owner", "--username", "target", stdout=StringIO())
+
+        task.refresh_from_db()
+        self.assertIsNone(task.owner)
+
+    def test_only_unowned_leaves_other_owners_untouched(self):
+        target = User.objects.create_user(username="target")
+        other = User.objects.create_user(username="other")
+        orphan = TaskItem.objects.create(title="orphan")
+        owned = TaskItem.objects.create(title="owned", owner=other)
+
+        call_command(
+            "backfill_task_owner", "--username", "target", "--only-unowned", "--apply",
+            stdout=StringIO(),
+        )
+
+        orphan.refresh_from_db()
+        owned.refresh_from_db()
+        self.assertEqual(orphan.owner, target)
+        self.assertEqual(owned.owner, other)
+
+    def test_apply_claims_all_tasks(self):
+        target = User.objects.create_user(username="target", email="me@example.com")
+        other = User.objects.create_user(username="other")
+        TaskItem.objects.create(title="orphan")
+        TaskItem.objects.create(title="owned", owner=other)
+
+        call_command(
+            "backfill_task_owner", "--email", "me@example.com", "--apply", stdout=StringIO()
+        )
+
+        self.assertEqual(TaskItem.objects.filter(owner=target).count(), 2)
