@@ -2,15 +2,14 @@ import { Injectable } from '@angular/core';
 import { HttpClient, HttpHeaders } from '@angular/common/http';
 import { Task } from './task';
 import { MessageService } from '../message.service';
-import {Observable, of} from 'rxjs';
-import {catchError, map, switchMap, tap} from 'rxjs/operators';
+import {Observable} from 'rxjs';
+import {catchError, tap} from 'rxjs/operators';
 import {TagService} from '../tags/tag.service';
 import {Tag} from '../tags/tag';
-import {query} from '@angular/animations';
-import {coerceBooleanProperty} from '@angular/cdk/coercion';
 import {TaskFilters} from './task-filters';
 import {ServiceBase} from '../service-base';
 import {environment} from '../../environments/environment';
+import {Page} from '../page';
 
 @Injectable({
   providedIn: 'root'
@@ -46,18 +45,22 @@ export class TaskService extends ServiceBase {
   }
 
 
-  getTasks(filters: TaskFilters | null = null): Observable<Task[]> {
-    if (!filters) filters = new TaskFilters()
-    let url = filters.getFilteredURL(this.tasksURL);
-    return this.http.get<Task[]>(url)
+  /**
+   * Fetch one window of tasks from the paginated API.
+   * `offset`/`limit` map onto the virtual-scroll range; the response is the
+   * DRF `{count, next, previous, results}` envelope.
+   */
+  getTasksPage(filters: TaskFilters | null, offset: number, limit: number): Observable<Page<Task>> {
+    if (!filters) filters = new TaskFilters();
+    const base = filters.getFilteredURL(this.tasksURL);
+    const sep = base.includes('?') ? '&' : '?';
+    const url = `${base}${sep}limit=${limit}&offset=${offset}`;
+    return this.http.get<Page<Task>>(url)
       .pipe(
-        tap((tasks: Task[]) => tasks.map((task: Task) => {
-          this.processTagsFromServer(task);
-          return task;
-        })),
-        tap(_ => this.log(`fetched ${_.length} tasks`)),
-        catchError(this.handleError<Task[]>('getTasks', [])),
-      )
+        tap((page: Page<Task>) => page.results.forEach((task: Task) => this.processTagsFromServer(task))),
+        tap((page: Page<Task>) => this.log(`fetched ${page.results.length}/${page.count} tasks @${offset}`)),
+        catchError(this.handleError<Page<Task>>('getTasksPage')),
+      );
   }
 
   getTagsForTask(task: Task) {

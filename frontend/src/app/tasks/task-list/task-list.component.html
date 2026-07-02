@@ -1,68 +1,85 @@
-<h1> {{ activeTaskCount() }} Tasks <small class="text-muted">get things done</small></h1>
-<div class = "btn-group mb-3" role="toolbar" aria-label="task toolbar">
-  <button type="button" class="btn" [ngClass]="{'btn-primary': filters()['todo'], 'btn-outline-primary': !filters()['todo']}" (click)="toggleFilters('todo')">Todo</button>
-  <button type="button" class="btn" [ngClass]="{'btn-primary': filters()['completed'], 'btn-outline-primary': !filters()['completed']}" (click)="toggleFilters('completed')">Completed</button>
-  <button type="button" class="btn" [ngClass]="{'btn-primary': filters()['today'], 'btn-outline-primary': !filters()['today']}" (click)="toggleFilters('today')">Today</button>
+<div class="d-flex flex-wrap align-items-baseline justify-content-between gap-2 mb-3">
+  <h1 class="h3 mb-0">{{ totalCount() }} Tasks <small class="text-muted fs-6">get things done</small></h1>
 </div>
 
-<div class = "row mb-3 m-0">
-    <input id="task-title" class="form-control" [(ngModel)]="taskInput" (keyup.enter)="addTask(taskInput)" placeholder="Mai multe task-uri ...">
+<div class="d-flex flex-column flex-sm-row gap-2 mb-3">
+  <div class="btn-group" role="group" aria-label="task filters">
+    <button type="button" class="btn btn-sm" [ngClass]="{'btn-primary': filters()['todo'], 'btn-outline-primary': !filters()['todo']}" (click)="toggleFilters('todo')">Todo</button>
+    <button type="button" class="btn btn-sm" [ngClass]="{'btn-primary': filters()['completed'], 'btn-outline-primary': !filters()['completed']}" (click)="toggleFilters('completed')">Completed</button>
+    <button type="button" class="btn btn-sm" [ngClass]="{'btn-primary': filters()['today'], 'btn-outline-primary': !filters()['today']}" (click)="toggleFilters('today')">Today</button>
+  </div>
+  <div class="input-group input-group-sm flex-grow-1">
+    <span class="input-group-text" aria-hidden="true">
+      <svg class="bi" width="14" height="14" role="img" aria-label="Search"><use xlink:href="bootstrap-icons/bootstrap-icons.svg#search"></use></svg>
+    </span>
+    <input type="search" class="form-control" [ngModel]="searchInput" (ngModelChange)="onSearch($event)" placeholder="Search tasks…" aria-label="Search tasks">
+  </div>
 </div>
 
-<ul class = "list-group border-0">
-  @for (task of tasks(); track task.id) {
-    <li class = "list-group-item border-0" (click)="onSelect(task)">
-      <div class = "row">
-        <div class = "col-1">
-            <div href="" class="text-black" (click)="toggleTaskDone(task)">
-              <svg class="bi me-2" width="16" height="16" role="img" aria-label="Checkbox">
-                @if (!task.completed) {
-                  <use xlink:href="bootstrap-icons/bootstrap-icons.svg#square"></use>
-                } @else {
-                  <use xlink:href="bootstrap-icons/bootstrap-icons.svg#check-square"></use>
-                }
-              </svg>
-            </div>
-            <div href="" class="text-black" (click)="toggleTaskToday(task)">
-              <svg class="bi me-2" width="16" height="16" role="img" aria-label="Checkbox">
-                @if (!task.for_today) {
-                  <use xlink:href="bootstrap-icons/bootstrap-icons.svg#calendar2"></use>
-                } @else {
-                  <use xlink:href="bootstrap-icons/bootstrap-icons.svg#calendar2-check-fill"></use>
-                }
-              </svg>
-            </div>
+<div class="input-group mb-3">
+  <input id="task-title" class="form-control" [(ngModel)]="taskInput" (keyup.enter)="addTask(taskInput)" placeholder="Add a task… (use @tags(work, urgent))">
+  <button class="btn btn-primary" type="button" (click)="addTask(taskInput)">Add</button>
+</div>
+
+@if (dataSource(); as ds) {
+  <cdk-virtual-scroll-viewport [itemSize]="rowHeight" class="task-viewport border rounded" minBufferPx="640" maxBufferPx="1280">
+    <div *cdkVirtualFor="let task of ds; trackBy: trackByIndex" class="task-row d-flex align-items-center gap-2 px-2 border-bottom" [style.height.px]="rowHeight">
+      @if (task) {
+        <div class="d-flex flex-column flex-shrink-0 task-checks">
+          <button type="button" class="btn btn-link p-0 lh-1 text-body" (click)="toggleTaskDone(task)" [attr.aria-pressed]="task.completed" title="Toggle done">
+            <svg class="bi" width="18" height="18" role="img" aria-label="Done">
+              @if (!task.completed) {
+                <use xlink:href="bootstrap-icons/bootstrap-icons.svg#square"></use>
+              } @else {
+                <use xlink:href="bootstrap-icons/bootstrap-icons.svg#check-square-fill"></use>
+              }
+            </svg>
+          </button>
+          <button type="button" class="btn btn-link p-0 lh-1 text-body" (click)="toggleTaskToday(task)" [attr.aria-pressed]="task.for_today" title="Toggle today">
+            <svg class="bi" width="16" height="16" role="img" aria-label="Today">
+              @if (!task.for_today) {
+                <use xlink:href="bootstrap-icons/bootstrap-icons.svg#calendar2"></use>
+              } @else {
+                <use xlink:href="bootstrap-icons/bootstrap-icons.svg#calendar2-check-fill"></use>
+              }
+            </svg>
+          </button>
         </div>
 
-        <div class = "col-6">
-          <a class="text-dark text-decoration-none" [ngClass]="{'text-decoration-line-through': task.completed}" routerLink="/tasks/{{ task.id }}">{{ task.title }}</a>
-          @if (task.completed) {
-            <span class = "small text-muted m-2">Completed on {{ task.completed_date | date }}</span>
-          }
-          <p class = "small">{{ task.description }}</p>
+        <div class="flex-grow-1 min-w-0">
+          <a class="d-block text-truncate text-body text-decoration-none fw-medium" [ngClass]="{'text-decoration-line-through text-muted': task.completed}" routerLink="/tasks/{{ task.id }}">{{ task.title }}</a>
+          <small class="d-block text-truncate text-muted task-desc">
+            @if (task.completed && task.completed_date) {
+              <span class="me-1">✓ {{ task.completed_date | date }}</span>
+            }
+            {{ task.description }}
+          </small>
         </div>
-        <div class = "col-4 col-task-tags">
+
+        <div class="d-none d-md-flex flex-wrap justify-content-end task-tags">
           @for (tag of task._tags; track tag.id) {
-            <span style="background-color: {{ tag.color }}; color: {{ tag | tagColor }}" class="badge m-1 tag">{{ tag.name }}</span>
+            <span [style.background-color]="tag.color" [style.color]="tag | tagColor" class="badge rounded-pill">{{ tag.name }}</span>
           }
         </div>
-        <div class = "col-1 col-task-toolbar">
-          <div class = "btn-group btn-group-sm" role="toolbar" aria-label="task toolbar">
-            <button type="button" class="btn btn-secondary" routerLink="/tasks/{{ task.id }}">
-              <svg class="bi" width="12" height="12" role="img" aria-label="Pencil" fill="currentColor">
-                <use xlink:href="bootstrap-icons/bootstrap-icons.svg#pencil"></use>
-              </svg>
-            </button>
-          </div>
-          <div class = "btn-group btn-group-sm ms-1" role="toolbar" aria-label="task toolbar delete">
-            <button type="button" class="btn btn-danger" (click)="deleteTask(task)">
-              <svg class="bi" width="12" height="12" role="img" aria-label="Trashcan" fill="currentColor">
-                <use xlink:href="bootstrap-icons/bootstrap-icons.svg#trash"></use>
-              </svg>
-            </button>
-          </div>
+
+        <div class="btn-group btn-group-sm flex-shrink-0" role="group" aria-label="task actions">
+          <button type="button" class="btn btn-outline-secondary" routerLink="/tasks/{{ task.id }}" title="Edit">
+            <svg class="bi" width="14" height="14" role="img" aria-label="Edit" fill="currentColor"><use xlink:href="bootstrap-icons/bootstrap-icons.svg#pencil"></use></svg>
+          </button>
+          <button type="button" class="btn btn-outline-danger" (click)="deleteTask(task)" title="Delete">
+            <svg class="bi" width="14" height="14" role="img" aria-label="Delete" fill="currentColor"><use xlink:href="bootstrap-icons/bootstrap-icons.svg#trash"></use></svg>
+          </button>
         </div>
-      </div>
-    </li>
+      } @else {
+        <div class="flex-grow-1 placeholder-glow">
+          <span class="placeholder col-6 rounded"></span>
+          <span class="placeholder placeholder-sm col-4 rounded d-block mt-1"></span>
+        </div>
+      }
+    </div>
+  </cdk-virtual-scroll-viewport>
+
+  @if (totalCount() === 0) {
+    <p class="text-muted text-center py-4 mb-0">No tasks match these filters.</p>
   }
-</ul>
+}

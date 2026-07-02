@@ -1,34 +1,42 @@
-import { ChangeDetectionStrategy, Component, Input, OnInit, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, Input, OnDestroy, OnInit, signal } from '@angular/core';
 import { NgClass, DatePipe } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
+import { ScrollingModule } from '@angular/cdk/scrolling';
+import { Subject, Subscription } from 'rxjs';
+import { debounceTime, distinctUntilChanged, tap } from 'rxjs/operators';
 import { TaskService } from '../task.service';
 import { Task } from '../task';
 import { TagService } from '../../tags/tag.service';
 import { Tag } from '../../tags/tag';
 import { TagColorPipe } from '../../tags/tag-color.pipe';
-import { forkJoin, Observable } from 'rxjs';
 import { TaskFilters } from '../task-filters';
-import { map } from 'rxjs/operators';
+import { TaskDataSource, TaskPageLoader, TASK_PAGE_SIZE } from '../task-data-source';
 
 @Component({
   selector: 'app-task-list',
-  imports: [FormsModule, NgClass, DatePipe, RouterLink, TagColorPipe],
+  imports: [FormsModule, NgClass, DatePipe, RouterLink, TagColorPipe, ScrollingModule],
   templateUrl: './task-list.component.html',
   styleUrls: ['./task-list.component.css'],
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
-export class TaskListComponent implements OnInit {
-  readonly tasks = signal<Task[]>([]);
-  readonly tags = signal<Tag[]>([]);
-  readonly activeTaskCount = signal(0);
-  readonly filters = signal<{ [k: string]: boolean }>({});
+export class TaskListComponent implements OnInit, OnDestroy {
+  /** Fixed row height (px) — required by the CDK fixed-size virtual scroll strategy. */
+  readonly rowHeight = 64;
 
-  selectedTask?: Task;
+  readonly dataSource = signal<TaskDataSource | null>(null);
+  readonly tags = signal<Tag[]>([]);
+  readonly totalCount = signal(0);
+  readonly filters = signal<{ [k: string]: boolean }>({ today: false, completed: false, todo: true });
+
   taskInput = '';
+  searchInput = '';
 
   @Input() filters_tags: Tag[] | null = null;
   @Input() for_tag: Tag | null = null;
+
+  private readonly search$ = new Subject<string>();
+  private readonly subscription = new Subscription();
 
   constructor(
     private taskService: TaskService,
@@ -37,64 +45,59 @@ export class TaskListComponent implements OnInit {
 
   ngOnInit(): void {
     this.getTags();
+    this.subscription.add(
+      this.search$.pipe(debounceTime(250), distinctUntilChanged()).subscribe(() => this.rebuild())
+    );
+    this.rebuild();
+  }
 
-    this.filters.set({
-      'today': false,
-      'completed': false,
-      'todo': true,
-    });
-    this.getTasks();
+  ngOnDestroy(): void {
+    this.subscription.unsubscribe();
+  }
+
+  onSearch(term: string): void {
+    this.searchInput = term;
+    this.search$.next(term.trim());
   }
 
   toggleFilters(filter: string): void {
     const current = this.filters();
     if (!(filter in current)) return;
     this.filters.set({ ...current, [filter]: !current[filter] });
-    this.getTasks();
+    this.rebuild();
   }
 
-  processFilters(useCompletedDate: boolean = false): TaskFilters {
-    const filters = this.filters();
+  /** Translate the UI filter toggles + search term into a single paginable query. */
+  private buildFilters(): TaskFilters {
+    const f = this.filters();
     let completed: boolean | null = null;
-    if (filters['completed'] != filters['todo']) {
-      completed = filters['completed'];
+    if (f['completed'] != f['todo']) {
+      completed = f['completed'];
+    }
+    const tags: Tag[] | null = this.filters_tags || null;
+    const contains: string | null = this.searchInput.trim() || null;
+
+    // "today + completed" = tasks flagged for today OR completed today, honoured server-side in a
+    // single query via `today_view` (replaces the old two-call merge so it stays paginable).
+    if (f['today'] && f['completed']) {
+      return new TaskFilters(completed, contains, null, tags, null, true);
     }
 
-    let forToday: boolean | null = filters['today'] ? true : null;
-
-    let tags: Tag[] | null = this.filters_tags || null;
-
-    let completed_date: Date | null = null;
-    if (useCompletedDate) {
-      completed_date = new Date();
-      //  completed date task-list have forToday disabled
-      forToday = null;
-    }
-
-    return new TaskFilters(completed, null, completed_date, tags, forToday);
+    const forToday: boolean | null = f['today'] ? true : null;
+    return new TaskFilters(completed, contains, null, tags, forToday, null);
   }
 
-  getTasks(): void {
-    const filters = this.filters();
-    let tasks$: Observable<Task[]>;
-    if (filters['today'] && filters['completed']) {
-      //  have to do 2 calls to the API
-      let filtersNoDate = this.processFilters(false);
-      let filtersDate = this.processFilters(true);
-      tasks$ = forkJoin([this.taskService.getTasks(filtersNoDate),
-        this.taskService.getTasks(filtersDate)]).pipe(
-          map((taskResponses: [Task[], Task[]]) => [...taskResponses[0], ...taskResponses[1]])
+  private makeLoader(): TaskPageLoader {
+    const filters = this.buildFilters();
+    return (offset: number, limit: number) =>
+      this.taskService.getTasksPage(filters, offset, limit).pipe(
+        tap(page => { if (page) this.totalCount.set(page.count); })
       );
-    } else {
-      let f = this.processFilters();
-      tasks$ = this.taskService.getTasks(f);
-    }
+  }
 
-    tasks$
-      .subscribe(tasks => {
-        this.tasks.set(tasks);
-        this.activeTaskCount.set(tasks.reduce((count, task) => count + (task.completed ? 0 : 1), 0));
-      });
+  /** Rebuild the windowed data source for the current filters/search (resets to the top). */
+  private rebuild(): void {
+    this.dataSource.set(new TaskDataSource(this.makeLoader()));
   }
 
   getTags(): void {
@@ -102,72 +105,64 @@ export class TaskListComponent implements OnInit {
       .subscribe(tags => this.tags.set(tags));
   }
 
-  onSelect(task: Task): void {
-    this.selectedTask = task;
-  }
-
   addTask(taskDescription: string): void {
-    let tag_re = /^(?<title>.+?)(@tags\((?<tags>[\w ,-]+)\))?$/ui;
-    let matches = taskDescription.match(tag_re);
+    const tag_re = /^(?<title>.+?)(@tags\((?<tags>[\w ,-]+)\))?$/ui;
+    const matches = taskDescription.match(tag_re);
 
-    let tags: string | undefined = matches?.groups?.tags;
-    let title: string | undefined = matches?.groups?.title;
+    const tags: string | undefined = matches?.groups?.tags;
+    const title: string | undefined = matches?.groups?.title;
 
     if (!title) {
       return;
     }
 
-    let task: Task = {
+    const task: Task = {
       title: title,
       for_today: this.filters()['today'],
       tags: [],
       _tags: []
     };
 
+    this.taskInput = '';
+
     if (tags === undefined) {
-      this.taskService.addTask(task as Task).subscribe((task: Task) => this.tasks.update(t => [...t, task]));
-      this.taskInput = '';
+      this.taskService.addTask(task).subscribe(() => this.rebuild());
       return;
     }
 
-    let parsed_tags: string[] = tags.split(/\s*(?:,|$)\s*/);
-    let tags$: Observable<Tag[]>[] = [];
-
-    // have to resolve tags-list to IDs
-    parsed_tags.forEach((tag: string) => tags$.push(this.tagService.getTagBySlug(tag)));
-    forkJoin(tags$).subscribe((res_tags: Tag[][]) => {
-      res_tags.forEach((tags: Tag[]) => {
-        if (tags.length) {
-          task.tags.push(tags[0].id);
-          task._tags.push(tags[0]);
+    const parsed_tags: string[] = tags.split(/\s*(?:,|$)\s*/);
+    parsed_tags.forEach((tag: string) => {
+      this.tagService.getTagBySlug(tag).subscribe((found: Tag[]) => {
+        if (found.length) {
+          task.tags.push(found[0].id!);
+          task._tags.push(found[0]);
         }
       });
-      this.taskService.addTask(task as Task).subscribe((task: Task) => this.tasks.update(t => [task, ...t]));
     });
-
-    this.taskInput = '';
+    this.taskService.addTask(task).subscribe(() => this.rebuild());
   }
 
   deleteTask(task: Task): void {
     if (task.id != null) {
       this.taskService.deleteTask(task.id).subscribe();
     }
-    this.tasks.update(tasks => tasks.filter(t => t.id !== task.id));
+    this.dataSource()?.removeById(task.id);
+    this.totalCount.update(c => Math.max(0, c - 1));
   }
 
   toggleTaskDone(task: Task): void {
     if (!task) return;
-    this.activeTaskCount.update(count => count + (task.completed ? 1 : -1));
     task.completed = !task.completed;
     if (task.completed && task.for_today) task.for_today = false;
     this.taskService.updateTask(task).subscribe();
 
-    const filters = this.filters();
-    if ((!filters['completed'] && filters['todo']) ||
-      (!filters['todo'] && filters['completed'])) {
-      this.tasks.update(tasks => tasks.filter((t: Task) => filters['todo'] ? !t.completed : t.completed));
+    const f = this.filters();
+    const showsBothStates = f['todo'] && f['completed'];
+    if (showsBothStates && !f['today']) {
+      this.dataSource()?.replace(task);
     } else {
-      this.tasks.update(tasks => [...tasks]);
+      // removeById self-heals: if the task still matches, the range refetch brings it back.
+      this.dataSource()?.removeById(task.id);
     }
   }
 
@@ -175,10 +170,17 @@ export class TaskListComponent implements OnInit {
     if (!task || task.completed) return;
     task.for_today = !task.for_today;
     this.taskService.updateTask(task).subscribe();
-    if (this.filters()['today']) {
-      this.tasks.update(tasks => tasks.filter((t: Task) => t.for_today));
+
+    if (this.filters()['today'] && !task.for_today) {
+      this.dataSource()?.removeById(task.id);
     } else {
-      this.tasks.update(tasks => [...tasks]);
+      this.dataSource()?.replace(task);
     }
   }
+
+  trackByIndex(index: number): number {
+    return index;
+  }
+
+  protected readonly TASK_PAGE_SIZE = TASK_PAGE_SIZE;
 }

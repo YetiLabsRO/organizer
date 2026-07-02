@@ -1,5 +1,4 @@
 import {Tag} from '../tags/tag';
-import {query} from '@angular/animations';
 import {formatDate} from '@angular/common';
 
 export class TaskFilters {
@@ -10,26 +9,29 @@ export class TaskFilters {
   completed_date: Date | null;
   tags: Tag[] | null;
   for_today: boolean | null;
+  today_view: boolean | null;
 
   constructor(completed: boolean | null = null,
               contains: string | null = null,
               completed_date: Date | null = null,
               tags: Tag[] | null = null,
-              forToday: boolean | null = null) {
+              forToday: boolean | null = null,
+              todayView: boolean | null = null) {
     this.completed = completed;
     this.contains = contains;
     this.completed_date = completed_date;
     this.tags = tags;
     this.for_today = forToday;
+    this.today_view = todayView;
   }
 
   getQueryString(): string {
     let queryItems: string[] = [];
-    let filterList: string[] = ["completed", "contains", "for_today"]
+    let filterList: string[] = ["completed", "contains", "for_today", "today_view"]
 
     filterList.forEach((item => {
       if (this[item] !== null) {
-        queryItems.push(`${item}=${this[item]}`)
+        queryItems.push(`${item}=${encodeURIComponent(this[item])}`)
       }
     }))
 
@@ -51,5 +53,3 @@ export class TaskFilters {
     return queryString ? `${url}?${queryString}` : url
   }
 }
-
-

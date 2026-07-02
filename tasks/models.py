@@ -53,11 +53,13 @@ class TaskItem(models.Model):
     for_today = models.BooleanField(default=False)
 
     class Meta:
-        ordering = ["order", "-priority", "-start_date", "-changed_date", "-created_date"]
+        # `pk` is a deterministic final tiebreaker so limit/offset pages are stable (no
+        # duplicated/skipped rows across requests when earlier keys tie).
+        ordering = ["order", "-priority", "-start_date", "-changed_date", "-created_date", "pk"]
 
     def __str__(self):
         return self.title
-    
+
     def save(self, **kwargs):
         if not self.completed and self.completed_date:
             self.completed_date = None
@@ -109,7 +111,7 @@ class TaskComment(models.Model):
     user = models.ForeignKey(get_user_model(), on_delete=models.CASCADE)
     timestamp = models.DateTimeField(auto_now=True)
     description = models.TextField(null=True, blank=True)
-    task = models.ForeignKey(TaskItem, on_delete=models.CASCADE)
+    task = models.ForeignKey(TaskItem, on_delete=models.CASCADE, related_name="comments")
 
     def __str__(self):
         return self.description

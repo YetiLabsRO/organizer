@@ -41,14 +41,26 @@ class TaskSerializer(serializers.ModelSerializer):
                   "comments", "for_today")
 
     tags = PrimaryKeyRelatedField(queryset=Tag.objects.all(), many=True, allow_null=True, required=False)
+    # Owner is set server-side from the request user (see TaskItemViewSet.perform_create); clients
+    # cannot assign or reassign it.
+    owner = PrimaryKeyRelatedField(read_only=True)
     comments = TaskCommentSerializer(many=True, read_only=True)
 
-    # def create(self, validated_data):
-    #     tags = validated_data.pop('tags')
-    #     instance = super(TaskSerializer, self).create(validated_data)
-    #     instance.tags = Tag.objects.filter(id__in=[t['id'] for t in tags])
-    #     instance.save()
-    #     return instance
+
+class TaskListSerializer(serializers.ModelSerializer):
+    """Lightweight serializer for the (windowed) task list — omits nested comments.
+
+    Comments are only rendered on the detail view, which uses ``TaskSerializer``.
+    """
+
+    class Meta:
+        model = TaskItem
+        fields = ("id", "title", "description", "start_date", "end_date", "estimated_time", "parent_task", "status",
+                  "owner", "priority", "completed", "tags", "completed_date", "changed_date", "order", "project",
+                  "for_today")
+
+    tags = PrimaryKeyRelatedField(queryset=Tag.objects.all(), many=True, allow_null=True, required=False)
+    owner = PrimaryKeyRelatedField(read_only=True)
 
 
 class ProjectSerializer(serializers.ModelSerializer):

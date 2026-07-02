@@ -1,4 +1,48 @@
-div.col-task-toolbar, div.col-task-tags {
-  text-align: right;
+/* Virtual-scroll viewport fills the space under the toolbar; it scrolls internally
+   so the page itself never grows with the task count. */
+.task-viewport {
+  height: calc(100vh - 260px);
+  min-height: 320px;
+  overflow-x: hidden;
 }
 
+.task-row {
+  background: var(--bs-body-bg);
+}
+
+.task-row:hover {
+  background: var(--bs-tertiary-bg);
+}
+
+/* Let flex children truncate instead of overflowing (min-width:0 fixes text-truncate in flex). */
+.min-w-0 {
+  min-width: 0;
+}
+
+.task-desc {
+  font-size: 0.8rem;
+}
+
+.task-checks {
+  width: 1.75rem;
+  align-items: center;
+  gap: 0.15rem;
+}
+
+/* Tags column: capped width, wrapping badges, hidden on small screens. */
+.task-tags {
+  max-width: 40%;
+  gap: 0.25rem;
+  overflow: hidden;
+  max-height: 3rem;
+}
+
+.task-tags .badge {
+  font-weight: 500;
+}
+
+@media (max-width: 575.98px) {
+  .task-viewport {
+    height: calc(100vh - 300px);
+  }
+}
