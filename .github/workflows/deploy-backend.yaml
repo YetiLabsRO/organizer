@@ -116,7 +116,9 @@ jobs:
         run: |
           ssh production 'bash -s' <<REMOTE_SCRIPT
           set -euo pipefail
-          DUMP_DIR=/var/backups/organizer
+          # Keep dumps under the deploy user's HOME: a non-interactive CI ssh session has no TTY
+          # to enter a sudo password, so it cannot create/write a root-owned dir like /var/backups.
+          DUMP_DIR="\${BACKEND_DUMP_DIR:-\$HOME/backups/organizer}"
           mkdir -p "\$DUMP_DIR"
           cd "${DEPLOY_PATH}"
           # Load DB_* from the app's .env so pg_dump can connect.
