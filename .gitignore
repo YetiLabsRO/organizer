@@ -6,7 +6,6 @@ db.sqlite3
 organizer/local_settings*
 .env
 .envrc
-keys/*
 ### Django template
 *.log
 *.pot

@@ -58,7 +58,6 @@ INSTALLED_APPS = [
 
     'rest_framework',
     'rest_framework.authtoken',
-    'rest_framework_sso',
     'dj_rest_auth',
 
     'corsheaders',
@@ -186,7 +185,6 @@ LOGIN_URL = "/admin/"
 REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': [
         'rest_framework.authentication.TokenAuthentication',
-        'rest_framework_sso.authentication.JWTAuthentication',
     ],
     'DEFAULT_PERMISSION_CLASSES': [
         'rest_framework.permissions.IsAuthenticated',
@@ -199,17 +197,6 @@ REST_FRAMEWORK = {
 
 REST_AUTH = {
     "TOKEN_SERIALIZER": "tasks.api.serializers.UserTokenSerializer",
-}
-
-REST_FRAMEWORK_SSO = {
-    "AUTHENTICATE_PAYLOAD": "tasks.utils.authenticate_payload",
-    "VERIFY_SESSION_TOKEN": False,
-    "IDENTITY": "organizer",
-    "ACCEPTED_ISSUERS": ["scoutfile", ],
-    "KEY_STORE_ROOT": BASE_DIR / "keys",
-    "PUBLIC_KEYS": {
-        "scoutfile": ["scoutfile-2023.pem"]
-    }
 }
 
 CORS_ALLOWED_ORIGINS = config(

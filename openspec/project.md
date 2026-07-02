@@ -7,7 +7,7 @@ dates, sub-tasks, tags, comments), group them into projects, and focus their day
 
 ## Tech Stack
 - **Backend**: Python 3.12+, Django 6, Django REST Framework, django-filter, django-model-utils.
-- **Auth**: dj-rest-auth (DRF token login), djangorestframework-sso (scoutfile JWT / RS256).
+- **Auth**: dj-rest-auth (DRF token login).
 - **Database**: PostgreSQL (psycopg v3).
 - **Frontend**: Angular (NgModule-based SPA) in `frontend/`, ng-bootstrap + Bootstrap + Angular Material.
 - **Tooling**: uv (Python deps/lockfile), ruff (lint/format), openspec (spec-driven changes).
@@ -45,9 +45,6 @@ dates, sub-tasks, tags, comments), group them into projects, and focus their day
 ## Important Constraints
 - PostgreSQL only. Legacy production data lives in a 2017 `organize_*` schema and must be migrated
   into the current `tasks_*` schema (see `docs/data-migration.md`).
-- The scoutfile SSO public key (`keys/scoutfile-2023.pem`) is required for JWT auth and is not in
-  version control.
 
 ## External Dependencies
-- **scoutfile** — external SSO issuer; its RS256-signed JWTs authenticate users via
-  `djangorestframework-sso` (`tasks/utils.authenticate_payload`).
+- None.

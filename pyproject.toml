@@ -8,13 +8,10 @@ dependencies = [
     "django>=5.2",
     "djangorestframework>=3.16",
     "dj-rest-auth>=7.0",
-    "djangorestframework-sso>=0.5.2",
     "django-cors-headers>=4.7",
     "django-filter>=25.1",
     "django-model-utils>=5.0",
     "psycopg[binary]>=3.2",
-    "pyjwt>=2.10",
-    "cryptography>=44",
     "python-decouple>=3.8",
 ]
 
