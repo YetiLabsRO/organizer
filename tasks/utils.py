@@ -1,7 +1,7 @@
 from django.contrib.auth import get_user_model
+from django.utils.translation import gettext as _
 from rest_framework.exceptions import AuthenticationFailed
 from rest_framework_sso import claims
-from django.utils.translation import gettext as _
 
 
 def authenticate_payload(payload):

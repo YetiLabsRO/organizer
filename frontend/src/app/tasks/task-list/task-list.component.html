@@ -1,0 +1,68 @@
+<h1> {{ activeTaskCount() }} Tasks <small class="text-muted">get things done</small></h1>
+<div class = "btn-group mb-3" role="toolbar" aria-label="task toolbar">
+  <button type="button" class="btn" [ngClass]="{'btn-primary': filters()['todo'], 'btn-outline-primary': !filters()['todo']}" (click)="toggleFilters('todo')">Todo</button>
+  <button type="button" class="btn" [ngClass]="{'btn-primary': filters()['completed'], 'btn-outline-primary': !filters()['completed']}" (click)="toggleFilters('completed')">Completed</button>
+  <button type="button" class="btn" [ngClass]="{'btn-primary': filters()['today'], 'btn-outline-primary': !filters()['today']}" (click)="toggleFilters('today')">Today</button>
+</div>
+
+<div class = "row mb-3 m-0">
+    <input id="task-title" class="form-control" [(ngModel)]="taskInput" (keyup.enter)="addTask(taskInput)" placeholder="Mai multe task-uri ...">
+</div>
+
+<ul class = "list-group border-0">
+  @for (task of tasks(); track task.id) {
+    <li class = "list-group-item border-0" (click)="onSelect(task)">
+      <div class = "row">
+        <div class = "col-1">
+            <div href="" class="text-black" (click)="toggleTaskDone(task)">
+              <svg class="bi me-2" width="16" height="16" role="img" aria-label="Checkbox">
+                @if (!task.completed) {
+                  <use xlink:href="bootstrap-icons/bootstrap-icons.svg#square"></use>
+                } @else {
+                  <use xlink:href="bootstrap-icons/bootstrap-icons.svg#check-square"></use>
+                }
+              </svg>
+            </div>
+            <div href="" class="text-black" (click)="toggleTaskToday(task)">
+              <svg class="bi me-2" width="16" height="16" role="img" aria-label="Checkbox">
+                @if (!task.for_today) {
+                  <use xlink:href="bootstrap-icons/bootstrap-icons.svg#calendar2"></use>
+                } @else {
+                  <use xlink:href="bootstrap-icons/bootstrap-icons.svg#calendar2-check-fill"></use>
+                }
+              </svg>
+            </div>
+        </div>
+
+        <div class = "col-6">
+          <a class="text-dark text-decoration-none" [ngClass]="{'text-decoration-line-through': task.completed}" routerLink="/tasks/{{ task.id }}">{{ task.title }}</a>
+          @if (task.completed) {
+            <span class = "small text-muted m-2">Completed on {{ task.completed_date | date }}</span>
+          }
+          <p class = "small">{{ task.description }}</p>
+        </div>
+        <div class = "col-4 col-task-tags">
+          @for (tag of task._tags; track tag.id) {
+            <span style="background-color: {{ tag.color }}; color: {{ tag | tagColor }}" class="badge m-1 tag">{{ tag.name }}</span>
+          }
+        </div>
+        <div class = "col-1 col-task-toolbar">
+          <div class = "btn-group btn-group-sm" role="toolbar" aria-label="task toolbar">
+            <button type="button" class="btn btn-secondary" routerLink="/tasks/{{ task.id }}">
+              <svg class="bi" width="12" height="12" role="img" aria-label="Pencil" fill="currentColor">
+                <use xlink:href="bootstrap-icons/bootstrap-icons.svg#pencil"></use>
+              </svg>
+            </button>
+          </div>
+          <div class = "btn-group btn-group-sm ms-1" role="toolbar" aria-label="task toolbar delete">
+            <button type="button" class="btn btn-danger" (click)="deleteTask(task)">
+              <svg class="bi" width="12" height="12" role="img" aria-label="Trashcan" fill="currentColor">
+                <use xlink:href="bootstrap-icons/bootstrap-icons.svg#trash"></use>
+              </svg>
+            </button>
+          </div>
+        </div>
+      </div>
+    </li>
+  }
+</ul>

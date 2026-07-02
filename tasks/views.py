@@ -1,17 +1,17 @@
 # Create your views here.
 from django.views.generic.base import TemplateView
-from rest_framework import viewsets, permissions
+from rest_framework import permissions, viewsets
 
+from tasks.api.serializers import ProjectSerializer, TagSerializer, TaskCommentSerializer, TaskSerializer
 from tasks.filters import TaskFilterSet
-from tasks.models import TaskItem, Tag, Project, TaskComment
-from tasks.api.serializers import TaskSerializer, TagSerializer, ProjectSerializer, TaskCommentSerializer
+from tasks.models import Project, Tag, TaskComment, TaskItem
 
 
 class MainAppView(TemplateView):
     template_name = "tasks/index.html"
 
     def dispatch(self, request, *args, **kwargs):
-        return super(MainAppView, self).dispatch(request, *args, **kwargs)
+        return super().dispatch(request, *args, **kwargs)
 
 
 class TaskItemViewSet(viewsets.ModelViewSet):

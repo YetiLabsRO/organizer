@@ -1,0 +1,24 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(uv sync)",
+      "Bash(uv lock)",
+      "Bash(uv run:*)",
+      "Bash(uv export:*)",
+      "Bash(uv add:*)",
+      "Bash(python manage.py:*)",
+      "Bash(./manage.py:*)",
+      "Bash(ruff:*)",
+      "Bash(openspec:*)",
+      "Bash(npm:*)",
+      "Bash(npx ng:*)",
+      "Bash(ng:*)",
+      "Bash(git status)",
+      "Bash(git diff:*)",
+      "Bash(git log:*)",
+      "Bash(git branch:*)",
+      "Bash(git show:*)"
+    ],
+    "deny": []
+  }
+}

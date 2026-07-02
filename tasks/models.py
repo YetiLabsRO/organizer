@@ -1,4 +1,3 @@
-# coding: utf8
 from django.contrib.auth import get_user_model
 from django.db import models
 from django.utils.text import slugify
@@ -11,10 +10,10 @@ class TaskItem(models.Model):
     IN_PROGRESS = 'inprogress'
     GIVEN_UP = 'givenup'
     TAKSITEM_STATUSES = (
-        (IDEA, u"Idee"),
-        (BLOCKED, u"Blocată"),
-        (IN_PROGRESS, u"În lucru"),
-        (GIVEN_UP, u"Am renunțat")
+        (IDEA, "Idee"),
+        (BLOCKED, "Blocată"),
+        (IN_PROGRESS, "În lucru"),
+        (GIVEN_UP, "Am renunțat")
     )
 
     HIGH = 4
@@ -22,9 +21,9 @@ class TaskItem(models.Model):
     LOW = 1
 
     TASKITEM_PRIORITIES = (
-        (HIGH, u"Prioritară"),
-        (NORMAL, u"Neutră"),
-        (LOW, u"Joasă")
+        (HIGH, "Prioritară"),
+        (NORMAL, "Neutră"),
+        (LOW, "Joasă")
     )
 
     title = models.CharField(max_length=1024)
@@ -62,7 +61,7 @@ class TaskItem(models.Model):
     def save(self, **kwargs):
         if not self.completed and self.completed_date:
             self.completed_date = None
-        super(TaskItem, self).save(**kwargs)
+        super().save(**kwargs)
 
         if self.project:
             for tag in self.project.tags.all():
@@ -88,7 +87,7 @@ class Project(models.Model):
     def save(self, **kwargs):
         if not self.slug:
             self.slug = slugify(self.title)
-        super(Project, self).save(**kwargs)
+        super().save(**kwargs)
 
 
 class Tag(models.Model):
@@ -100,7 +99,7 @@ class Tag(models.Model):
     def save(self, **kwargs):
         if not self.slug:
             self.slug = slugify(self.name)
-        super(Tag, self).save(**kwargs)
+        super().save(**kwargs)
 
     def __str__(self):
         return self.name
