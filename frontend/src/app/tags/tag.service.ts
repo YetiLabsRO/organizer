@@ -91,6 +91,7 @@ export class TagService  extends ServiceBase {
 
     return this.http.put<Tag>(url, tag, this.httpOptions)
       .pipe(
+        tap(() => this.invalidateTagsCache()),
         tap((updatedTag: Tag) => this.log(`updated tag id=${updatedTag.id}`)),
         catchError(this.handleError<Tag>('update tag'))
       );
@@ -101,8 +102,14 @@ export class TagService  extends ServiceBase {
 
     return this.http.post<Tag>(url, tag, this.httpOptions)
       .pipe(
+        tap(() => this.invalidateTagsCache()),
         tap((createdTag: Tag) => this.log(`created tag id=${createdTag.id}`)),
         catchError(this.handleError<Tag>('create tag'))
       )
+  }
+
+  /** Drop the cached tag list so the next autocomplete load picks up new/renamed tags. */
+  invalidateTagsCache(): void {
+    this.tagsCache$ = undefined;
   }
 }

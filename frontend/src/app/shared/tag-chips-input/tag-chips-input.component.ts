@@ -1,4 +1,4 @@
-import { ChangeDetectionStrategy, Component, ElementRef, model, signal, viewChild } from '@angular/core';
+import { ChangeDetectionStrategy, Component, ElementRef, computed, model, signal, viewChild } from '@angular/core';
 import { Tag } from '../../tags/tag';
 import { TagService } from '../../tags/tag.service';
 import { SuggestionListComponent, Suggestion } from '../autocomplete/suggestion-list.component';
@@ -17,6 +17,8 @@ import { tagTextColor } from '../tag-color.util';
 })
 export class TagChipsInputComponent {
   readonly tags = model<Tag[]>([]);
+  /** Guarded view of the model: `[(tags)]` may be bound to an undefined `_tags`. */
+  readonly currentTags = computed(() => this.tags() ?? []);
 
   readonly text = signal('');
   readonly suggestions = signal<Suggestion[]>([]);
@@ -39,7 +41,7 @@ export class TagChipsInputComponent {
 
   private refreshSuggestions(query: string): void {
     const q = query.toLowerCase();
-    const selected = new Set(this.tags().map((t) => t.id));
+    const selected = new Set(this.currentTags().map((t) => t.id));
     this.suggestions.set(
       this.allTags
         .filter((t) => !selected.has(t.id))
@@ -86,16 +88,16 @@ export class TagChipsInputComponent {
         return;
       }
     }
-    if (event.key === 'Backspace' && this.text() === '' && this.tags().length) {
+    if (event.key === 'Backspace' && this.text() === '' && this.currentTags().length) {
       event.preventDefault();
-      this.remove(this.tags()[this.tags().length - 1]);
+      this.remove(this.currentTags()[this.currentTags().length - 1]);
     }
   }
 
   selectSuggestion(suggestion: Suggestion): void {
     const tag = this.tagsById.get(suggestion.id);
-    if (tag && !this.tags().some((t) => t.id === tag.id)) {
-      this.tags.set([...this.tags(), tag]);
+    if (tag && !this.currentTags().some((t) => t.id === tag.id)) {
+      this.tags.set([...this.currentTags(), tag]);
     }
     this.text.set('');
     this.closeDropdown();
@@ -103,7 +105,7 @@ export class TagChipsInputComponent {
   }
 
   remove(tag: Tag): void {
-    this.tags.set(this.tags().filter((t) => t.id !== tag.id));
+    this.tags.set(this.currentTags().filter((t) => t.id !== tag.id));
   }
 
   closeDropdown(): void {
