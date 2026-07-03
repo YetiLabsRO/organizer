@@ -1,0 +1,131 @@
+<div class="d-flex flex-wrap align-items-baseline justify-content-between gap-2 mb-3">
+  <h1 class="h3 mb-0">Task stats <small class="text-muted fs-6">insights over your filtered tasks</small></h1>
+  <a routerLink="/tasks" class="btn btn-sm btn-outline-secondary">← Back to list</a>
+</div>
+
+<!-- Filter bar (writes to the URL; shareable/bookmarkable) -->
+<div class="d-flex flex-column flex-lg-row gap-2 mb-3">
+  <div class="btn-group btn-group-sm" role="group" aria-label="completion filter">
+    <button type="button" class="btn" [class]="completedState() === 'all' ? 'btn-primary' : 'btn-outline-primary'" (click)="setCompleted('all')">All</button>
+    <button type="button" class="btn" [class]="completedState() === 'todo' ? 'btn-primary' : 'btn-outline-primary'" (click)="setCompleted('todo')">Todo</button>
+    <button type="button" class="btn" [class]="completedState() === 'done' ? 'btn-primary' : 'btn-outline-primary'" (click)="setCompleted('done')">Completed</button>
+  </div>
+
+  <div class="btn-group btn-group-sm" role="group" aria-label="time bucket">
+    <button type="button" class="btn" [class]="bucket() === 'day' ? 'btn-primary' : 'btn-outline-primary'" (click)="setBucket('day')">Per day</button>
+    <button type="button" class="btn" [class]="bucket() === 'week' ? 'btn-primary' : 'btn-outline-primary'" (click)="setBucket('week')">Per week</button>
+  </div>
+
+  <div class="input-group input-group-sm flex-grow-1">
+    <span class="input-group-text" aria-hidden="true">
+      <svg class="bi" width="14" height="14" role="img" aria-label="Search"><use xlink:href="bootstrap-icons/bootstrap-icons.svg#search"></use></svg>
+    </span>
+    <input type="search" class="form-control" [ngModel]="searchInput" (ngModelChange)="onSearch($event)" placeholder="Search tasks…" aria-label="Search tasks">
+  </div>
+</div>
+
+@if (allTags().length) {
+  <div class="d-flex flex-wrap gap-1 mb-3">
+    @for (tag of allTags(); track tag.id) {
+      <button type="button" class="badge rounded-pill tag-pill border-0"
+              [style.background-color]="isTagActive(tag) ? tag.color : 'transparent'"
+              [style.color]="isTagActive(tag) ? (tag | tagColor) : null"
+              [style.box-shadow]="'inset 0 0 0 1px ' + tag.color"
+              (click)="toggleTag(tag)" [attr.aria-pressed]="isTagActive(tag)"
+              title="Toggle #{{ tag.name }} filter">#{{ tag.name }}</button>
+    }
+  </div>
+}
+
+@if (loading()) {
+  <div class="text-center text-muted py-5"><div class="spinner-border" role="status" aria-label="Loading"></div></div>
+} @else if (error()) {
+  <p class="text-danger text-center py-5 mb-0">Couldn’t load stats. Please try again.</p>
+} @else if (stats(); as s) {
+  @if (s.totals.total === 0) {
+    <p class="text-muted text-center py-5 mb-0">No tasks match these filters.</p>
+  } @else {
+    <div class="row g-3 mb-2">
+      <div class="col-12 col-md-4">
+        <div class="card h-100"><div class="card-body text-center">
+          <div class="display-6">{{ s.totals.total }}</div><div class="text-muted">tasks</div>
+        </div></div>
+      </div>
+      <div class="col-6 col-md-4">
+        <div class="card h-100"><div class="card-body text-center">
+          <div class="display-6 text-success">{{ s.totals.completed }}</div><div class="text-muted">completed</div>
+        </div></div>
+      </div>
+      <div class="col-6 col-md-4">
+        <div class="card h-100"><div class="card-body text-center">
+          <div class="display-6">{{ s.totals.open }}</div><div class="text-muted">open</div>
+        </div></div>
+      </div>
+    </div>
+
+    <div class="row g-3">
+      <div class="col-12 col-xl-6">
+        <div class="card h-100"><div class="card-body">
+          <h2 class="h6">Tasks by tag</h2>
+          @if (distributionConfig(); as cfg) { <div class="chart-box"><app-chart-canvas [config]="cfg" /></div> }
+          @else { <p class="text-muted mb-0">No tagged tasks.</p> }
+        </div></div>
+      </div>
+
+      <div class="col-12 col-xl-6">
+        <div class="card h-100"><div class="card-body">
+          <h2 class="h6">Solved per {{ s.bucket }}</h2>
+          @if (solvedTimelineConfig(); as cfg) { <div class="chart-box"><app-chart-canvas [config]="cfg" /></div> }
+          @else { <p class="text-muted mb-0">No completed tasks.</p> }
+        </div></div>
+      </div>
+
+      <div class="col-12">
+        <div class="card h-100"><div class="card-body">
+          <h2 class="h6">Cumulative solved by tag <small class="text-muted fw-normal">— multi-tag tasks count in each tag</small></h2>
+          @if (stackedAreaConfig(); as cfg) { <div class="chart-box chart-box-tall"><app-chart-canvas [config]="cfg" /></div> }
+          @else { <p class="text-muted mb-0">No completed tasks.</p> }
+        </div></div>
+      </div>
+
+      <div class="col-12">
+        <div class="card h-100"><div class="card-body">
+          <h2 class="h6">Activity heatmap <small class="text-muted fw-normal">— tasks solved per day</small></h2>
+          <app-calendar-heatmap [data]="s.calendar_heatmap" />
+        </div></div>
+      </div>
+
+      <div class="col-12 col-xl-6">
+        <div class="card h-100"><div class="card-body">
+          <h2 class="h6">Burn-up <small class="text-muted fw-normal">— created vs completed</small></h2>
+          @if (burnupConfig(); as cfg) { <div class="chart-box"><app-chart-canvas [config]="cfg" /></div> }
+          @else { <p class="text-muted mb-0">Not enough data.</p> }
+        </div></div>
+      </div>
+
+      <div class="col-12 col-xl-6">
+        <div class="card h-100"><div class="card-body">
+          <h2 class="h6">Time to complete by tag <small class="text-muted fw-normal">— avg days</small></h2>
+          @if (leadTimeConfig(); as cfg) { <div class="chart-box"><app-chart-canvas [config]="cfg" /></div> }
+          @else { <p class="text-muted mb-0">No completed tagged tasks.</p> }
+        </div></div>
+      </div>
+
+      <div class="col-12 col-md-6">
+        <div class="card h-100"><div class="card-body">
+          <h2 class="h6">By status</h2>
+          @if (statusConfig(); as cfg) { <div class="chart-box"><app-chart-canvas [config]="cfg" /></div> }
+          @else { <p class="text-muted mb-0">No data.</p> }
+        </div></div>
+      </div>
+
+      <div class="col-12 col-md-6">
+        <div class="card h-100"><div class="card-body">
+          <h2 class="h6">By priority</h2>
+          @if (priorityConfig(); as cfg) { <div class="chart-box"><app-chart-canvas [config]="cfg" /></div> }
+          @else { <p class="text-muted mb-0">No data.</p> }
+        </div></div>
+      </div>
+    </div>
+  }
+}

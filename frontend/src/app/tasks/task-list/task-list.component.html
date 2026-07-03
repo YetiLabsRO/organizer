@@ -26,6 +26,10 @@
     </span>
     <input type="search" class="form-control" [ngModel]="searchInput" (ngModelChange)="onSearch($event)" placeholder="Search tasks…" aria-label="Search tasks">
   </div>
+  <a routerLink="/tasks/stats" [queryParams]="statsQueryParams" class="btn btn-sm btn-outline-secondary d-flex align-items-center justify-content-center gap-1" title="Stats for these filters">
+    <svg class="bi" width="14" height="14" role="img" aria-label="Stats"><use xlink:href="bootstrap-icons/bootstrap-icons.svg#bar-chart"></use></svg>
+    <span>Stats</span>
+  </a>
 </div>
 
 <app-task-quick-add class="d-block mb-3" (create)="onQuickAdd($event)" />

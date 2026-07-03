@@ -1,0 +1,13 @@
+.chart-box {
+  position: relative;
+  height: 280px;
+}
+
+.chart-box-tall {
+  height: 360px;
+}
+
+.tag-pill {
+  cursor: pointer;
+  font-size: 0.8rem;
+}
