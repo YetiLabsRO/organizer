@@ -20,4 +20,5 @@ export interface Task {
   tags: number[]; // for writing references
   project?: number; // todo: Update to Project
   for_today?: boolean;
+  template?: number | null; // the recurring template that generated this task (read-only)
 }

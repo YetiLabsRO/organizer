@@ -51,7 +51,13 @@
         </div>
 
         <div class="flex-grow-1 min-w-0">
-          <a class="task-title d-block text-body text-decoration-none fw-medium" [ngClass]="{'text-decoration-line-through text-muted': task.completed}" routerLink="/tasks/{{ task.id }}">{{ task.title }}</a>
+          <span class="task-title d-block fw-medium">
+            <a class="text-body text-decoration-none" [ngClass]="{'text-decoration-line-through text-muted': task.completed}" routerLink="/tasks/{{ task.id }}">{{ task.title }}</a>
+            @if (task.template) {
+              <a routerLink="/templates/{{ task.template }}/edit" class="text-muted text-decoration-none ms-1"
+                 title="Recurring — created from a template" aria-label="Recurring task">↻</a>
+            }
+          </span>
           @if (task.description) {
             <app-markdown class="d-none d-md-block task-desc text-muted" [value]="task.description" [inline]="true" />
           } @else if (task.completed && task.completed_date) {
