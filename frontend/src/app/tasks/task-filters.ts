@@ -10,19 +10,25 @@ export class TaskFilters {
   tags: Tag[] | null;
   for_today: boolean | null;
   today_view: boolean | null;
+  completed_after: Date | null;
+  completed_before: Date | null;
 
   constructor(completed: boolean | null = null,
               contains: string | null = null,
               completed_date: Date | null = null,
               tags: Tag[] | null = null,
               forToday: boolean | null = null,
-              todayView: boolean | null = null) {
+              todayView: boolean | null = null,
+              completedAfter: Date | null = null,
+              completedBefore: Date | null = null) {
     this.completed = completed;
     this.contains = contains;
     this.completed_date = completed_date;
     this.tags = tags;
     this.for_today = forToday;
     this.today_view = todayView;
+    this.completed_after = completedAfter;
+    this.completed_before = completedBefore;
   }
 
   getQueryString(): string {
@@ -43,6 +49,14 @@ export class TaskFilters {
 
     if (this.completed_date) {
       queryItems.push(`completed_date=${formatDate(this.completed_date, "yyyy-MM-dd", 'en-US')}`)
+    }
+
+    if (this.completed_after) {
+      queryItems.push(`completed_after=${formatDate(this.completed_after, "yyyy-MM-dd", 'en-US')}`)
+    }
+
+    if (this.completed_before) {
+      queryItems.push(`completed_before=${formatDate(this.completed_before, "yyyy-MM-dd", 'en-US')}`)
     }
 
     return queryItems.join("&")
@@ -67,6 +81,12 @@ export class TaskFilters {
     }
     if (this.completed_date) {
       params["completed_date"] = formatDate(this.completed_date, "yyyy-MM-dd", "en-US");
+    }
+    if (this.completed_after) {
+      params["completed_after"] = formatDate(this.completed_after, "yyyy-MM-dd", "en-US");
+    }
+    if (this.completed_before) {
+      params["completed_before"] = formatDate(this.completed_before, "yyyy-MM-dd", "en-US");
     }
     return params;
   }

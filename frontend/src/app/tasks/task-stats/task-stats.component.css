@@ -11,3 +11,7 @@
   cursor: pointer;
   font-size: 0.8rem;
 }
+
+.period-range {
+  max-width: 420px;
+}

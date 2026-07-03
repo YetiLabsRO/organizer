@@ -209,6 +209,33 @@ class TaskStatsTests(APITestCase):
         self.assertEqual(rows["work"]["count"], 1)
         self.assertAlmostEqual(rows["work"]["avg_days"], 4.0, places=2)
 
+    def test_period_completed_after_scopes_stats(self):
+        self._solved("early", self.mon)  # 2026-01-05
+        self._solved("late", self.next_week)  # 2026-01-14
+
+        data = self.client.get(self.URL, {"completed_after": "2026-01-10"}).data
+
+        self.assertEqual(data["totals"]["total"], 1)
+        self.assertEqual(sum(row["count"] for row in data["solved_timeline"]), 1)
+
+    def test_period_completed_before_scopes_stats(self):
+        self._solved("early", self.mon)
+        self._solved("late", self.next_week)
+
+        data = self.client.get(self.URL, {"completed_before": "2026-01-10"}).data
+
+        self.assertEqual(data["totals"]["total"], 1)
+        self.assertEqual({row["period"] for row in data["solved_timeline"]}, {"2026-01-05"})
+
+    def test_period_bounds_combine_to_a_window(self):
+        self._solved("early", self.mon)
+        self._solved("mid", self.tue)
+        self._solved("late", self.next_week)
+
+        data = self.client.get(self.URL, {"completed_after": "2026-01-05", "completed_before": "2026-01-06"}).data
+
+        self.assertEqual(data["totals"]["total"], 2)
+
 
 class BackfillTaskOwnerCommandTests(TestCase):
     """The ownership backfill used to un-hide legacy tasks after owner scoping."""

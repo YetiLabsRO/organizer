@@ -24,6 +24,26 @@
   </div>
 </div>
 
+<!-- Period: scopes the dashboard by completion date -->
+<div class="d-flex flex-column flex-lg-row gap-2 mb-3 align-items-lg-center">
+  <div class="btn-group btn-group-sm" role="group" aria-label="period">
+    <button type="button" class="btn" [class]="activePeriod() === 'today' ? 'btn-primary' : 'btn-outline-primary'" (click)="setPeriod('today')">Today</button>
+    <button type="button" class="btn" [class]="activePeriod() === 'week' ? 'btn-primary' : 'btn-outline-primary'" (click)="setPeriod('week')">Last week</button>
+    <button type="button" class="btn" [class]="activePeriod() === 'month' ? 'btn-primary' : 'btn-outline-primary'" (click)="setPeriod('month')">Last month</button>
+    <button type="button" class="btn" [class]="activePeriod() === 'all' ? 'btn-primary' : 'btn-outline-primary'" (click)="setPeriod('all')">All time</button>
+  </div>
+  <div class="input-group input-group-sm period-range">
+    <span class="input-group-text">From</span>
+    <input #fromInput type="date" class="form-control" [value]="afterParam() ?? ''" (change)="onPeriodFrom(fromInput.value)" aria-label="Completed from">
+    <span class="input-group-text">To</span>
+    <input #toInput type="date" class="form-control" [value]="beforeParam() ?? ''" (change)="onPeriodTo(toInput.value)" aria-label="Completed to">
+  </div>
+  @if (activePeriod() === 'custom') {
+    <span class="badge text-bg-secondary align-self-start align-self-lg-center">custom range</span>
+  }
+  <small class="text-muted ms-lg-auto">scoped by completion date</small>
+</div>
+
 @if (allTags().length) {
   <div class="d-flex flex-wrap gap-1 mb-3">
     @for (tag of allTags(); track tag.id) {
@@ -45,23 +65,34 @@
   @if (s.totals.total === 0) {
     <p class="text-muted text-center py-5 mb-0">No tasks match these filters.</p>
   } @else {
-    <div class="row g-3 mb-2">
-      <div class="col-12 col-md-4">
-        <div class="card h-100"><div class="card-body text-center">
-          <div class="display-6">{{ s.totals.total }}</div><div class="text-muted">tasks</div>
-        </div></div>
+    @if (periodActive()) {
+      <div class="row g-3 mb-2">
+        <div class="col-12">
+          <div class="card h-100"><div class="card-body text-center">
+            <div class="display-6 text-success">{{ s.totals.completed }}</div>
+            <div class="text-muted">tasks completed in period</div>
+          </div></div>
+        </div>
       </div>
-      <div class="col-6 col-md-4">
-        <div class="card h-100"><div class="card-body text-center">
-          <div class="display-6 text-success">{{ s.totals.completed }}</div><div class="text-muted">completed</div>
-        </div></div>
+    } @else {
+      <div class="row g-3 mb-2">
+        <div class="col-12 col-md-4">
+          <div class="card h-100"><div class="card-body text-center">
+            <div class="display-6">{{ s.totals.total }}</div><div class="text-muted">tasks</div>
+          </div></div>
+        </div>
+        <div class="col-6 col-md-4">
+          <div class="card h-100"><div class="card-body text-center">
+            <div class="display-6 text-success">{{ s.totals.completed }}</div><div class="text-muted">completed</div>
+          </div></div>
+        </div>
+        <div class="col-6 col-md-4">
+          <div class="card h-100"><div class="card-body text-center">
+            <div class="display-6">{{ s.totals.open }}</div><div class="text-muted">open</div>
+          </div></div>
+        </div>
       </div>
-      <div class="col-6 col-md-4">
-        <div class="card h-100"><div class="card-body text-center">
-          <div class="display-6">{{ s.totals.open }}</div><div class="text-muted">open</div>
-        </div></div>
-      </div>
-    </div>
+    }
 
     <div class="row g-3">
       <div class="col-12 col-xl-6">
