@@ -1,5 +1,5 @@
 <div class="tag-chips form-control d-flex flex-wrap align-items-center gap-1 position-relative" (click)="input.focus()">
-  @for (tag of tags(); track tag.id) {
+  @for (tag of currentTags(); track tag.id) {
     <span class="badge rounded-pill d-inline-flex align-items-center gap-1"
           [style.background-color]="tag.color" [style.color]="textColor(tag.color)">
       {{ tag.name }}
@@ -8,7 +8,7 @@
     </span>
   }
   <input #input type="text" class="tag-chips-input flex-grow-1"
-         [value]="text()" (input)="onInput($event)" (keydown)="onKeydown($event)" (blur)="closeDropdown()"
+         [value]="text()" (input)="onInput($event)" (keydown)="onKeydown($event)" (focus)="onFocus()" (blur)="closeDropdown()"
          placeholder="Add tag…" autocomplete="off">
 
   @if (dropdownOpen()) {

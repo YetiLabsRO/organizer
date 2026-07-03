@@ -33,8 +33,8 @@ export class TaskListComponent implements OnInit, OnDestroy {
     this.breakpointObserver.observe('(max-width: 767.98px)').pipe(map((r) => r.matches)),
     { initialValue: false },
   );
-  /** Fixed row height (px). Taller on mobile so the title can wrap to two lines above the tag dots. */
-  readonly rowHeight = computed(() => (this.isMobile() ? 92 : 72));
+  /** Fixed row height (px). Compact on desktop; taller on mobile so the title can wrap to two lines. */
+  readonly rowHeight = computed(() => (this.isMobile() ? 84 : 56));
 
   readonly dataSource = signal<TaskDataSource | null>(null);
   readonly tags = signal<Tag[]>([]);

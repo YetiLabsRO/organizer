@@ -3,7 +3,7 @@ import { HttpClient, HttpHeaders } from '@angular/common/http';
 import {MessageService} from '../message.service';
 import {forkJoin, ObjectUnsubscribedError, Observable, of, zip} from 'rxjs';
 import {Tag} from './tag';
-import {catchError, tap} from 'rxjs/operators';
+import {catchError, shareReplay, tap} from 'rxjs/operators';
 import {ItemCacheService} from '../item-cache.service';
 import {Task} from '../tasks/task';
 import {ServiceBase} from '../service-base';
@@ -34,6 +34,16 @@ export class TagService  extends ServiceBase {
         catchError(this.handleError<Tag[]>('getTags', []))
       )
   };
+
+  private tagsCache$?: Observable<Tag[]>;
+
+  /** Shared, cached full tag list — used for client-side autocomplete filtering. */
+  getTagsCached(): Observable<Tag[]> {
+    if (!this.tagsCache$) {
+      this.tagsCache$ = this.getTags().pipe(shareReplay(1));
+    }
+    return this.tagsCache$;
+  }
 
   searchTags(query: string): Observable<Tag[]> {
     const url = `${this.tagsURL}?name=${query}`;
@@ -81,6 +91,7 @@ export class TagService  extends ServiceBase {
 
     return this.http.put<Tag>(url, tag, this.httpOptions)
       .pipe(
+        tap(() => this.invalidateTagsCache()),
         tap((updatedTag: Tag) => this.log(`updated tag id=${updatedTag.id}`)),
         catchError(this.handleError<Tag>('update tag'))
       );
@@ -91,8 +102,14 @@ export class TagService  extends ServiceBase {
 
     return this.http.post<Tag>(url, tag, this.httpOptions)
       .pipe(
+        tap(() => this.invalidateTagsCache()),
         tap((createdTag: Tag) => this.log(`created tag id=${createdTag.id}`)),
         catchError(this.handleError<Tag>('create tag'))
       )
+  }
+
+  /** Drop the cached tag list so the next autocomplete load picks up new/renamed tags. */
+  invalidateTagsCache(): void {
+    this.tagsCache$ = undefined;
   }
 }

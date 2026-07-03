@@ -35,8 +35,8 @@
 <app-task-quick-add class="d-block mb-3" (create)="onQuickAdd($event)" />
 
 @if (dataSource(); as ds) {
-  <cdk-virtual-scroll-viewport [itemSize]="rowHeight()" class="task-viewport border rounded" minBufferPx="720" maxBufferPx="1440">
-    <div *cdkVirtualFor="let task of ds; trackBy: trackByIndex" class="task-row d-flex align-items-start gap-2 px-2 py-2 border-bottom" [style.height.px]="rowHeight()">
+  <cdk-virtual-scroll-viewport [itemSize]="rowHeight()" class="task-viewport" minBufferPx="720" maxBufferPx="1440">
+    <div *cdkVirtualFor="let task of ds; trackBy: trackByIndex" class="task-row d-flex align-items-start gap-2 px-2 py-2" [style.height.px]="rowHeight()">
       @if (task) {
         <div class="flex-shrink-0 task-checks pt-1">
           <button type="button" class="btn btn-link p-0 lh-1 text-body" (click)="toggleTaskDone(task)" [attr.aria-pressed]="task.completed" title="Toggle done">

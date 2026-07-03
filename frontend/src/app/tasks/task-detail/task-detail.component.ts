@@ -3,8 +3,11 @@ import { NgClass } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { Modal } from 'bootstrap';
+import { forkJoin } from 'rxjs';
 import { Task } from '../task';
 import { TaskService } from '../task.service';
+import { TagService } from '../../tags/tag.service';
+import { Tag } from '../../tags/tag';
 import { MarkdownComponent } from '../../shared/markdown/markdown.component';
 import { TagChipsInputComponent } from '../../shared/tag-chips-input/tag-chips-input.component';
 import { ProjectPickerComponent } from '../../shared/project-picker/project-picker.component';
@@ -39,6 +42,7 @@ export class TaskDetailComponent implements OnInit {
     private route: ActivatedRoute,
     private router: Router,
     private taskService: TaskService,
+    private tagService: TagService,
   ) { }
 
   ngOnInit(): void {
@@ -51,7 +55,14 @@ export class TaskDetailComponent implements OnInit {
 
   getTask(): void {
     const id = parseInt(this.route.snapshot.paramMap.get('id')!, 10);
-    this.taskService.getTask(id).subscribe((task) => this.task.set(task));
+    // Resolve the task's tags from the full tag list so the chips (and a subsequent save) are
+    // reliable — not dependent on the async per-id cache that could leave `_tags` undefined.
+    forkJoin({ task: this.taskService.getTask(id), tags: this.tagService.getTagsCached() })
+      .subscribe(({ task, tags }) => {
+        const byId = new Map(tags.map((t) => [t.id, t]));
+        task._tags = (task.tags ?? []).map((tid) => byId.get(tid)).filter((t): t is Tag => !!t);
+        this.task.set(task);
+      });
   }
 
   save(): void {
