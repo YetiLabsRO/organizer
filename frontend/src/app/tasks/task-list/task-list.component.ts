@@ -1,10 +1,12 @@
-import { ChangeDetectionStrategy, Component, Input, OnDestroy, OnInit, computed, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, Input, OnDestroy, OnInit, computed, inject, signal } from '@angular/core';
+import { toSignal } from '@angular/core/rxjs-interop';
 import { NgClass, DatePipe } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
 import { ScrollingModule } from '@angular/cdk/scrolling';
+import { BreakpointObserver } from '@angular/cdk/layout';
 import { Subject, Subscription } from 'rxjs';
-import { debounceTime, distinctUntilChanged, tap } from 'rxjs/operators';
+import { debounceTime, distinctUntilChanged, map, tap } from 'rxjs/operators';
 import { TaskService } from '../task.service';
 import { Task } from '../task';
 import { TagService } from '../../tags/tag.service';
@@ -26,8 +28,13 @@ import { MarkdownComponent } from '../../shared/markdown/markdown.component';
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class TaskListComponent implements OnInit, OnDestroy {
-  /** Fixed row height (px) — required by the CDK fixed-size virtual scroll strategy. */
-  readonly rowHeight = 72;
+  private readonly breakpointObserver = inject(BreakpointObserver);
+  readonly isMobile = toSignal(
+    this.breakpointObserver.observe('(max-width: 767.98px)').pipe(map((r) => r.matches)),
+    { initialValue: false },
+  );
+  /** Fixed row height (px). Taller on mobile so the title can wrap to two lines above the tag dots. */
+  readonly rowHeight = computed(() => (this.isMobile() ? 92 : 72));
 
   readonly dataSource = signal<TaskDataSource | null>(null);
   readonly tags = signal<Tag[]>([]);

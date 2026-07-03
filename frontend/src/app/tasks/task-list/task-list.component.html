@@ -31,8 +31,8 @@
 <app-task-quick-add class="d-block mb-3" (create)="onQuickAdd($event)" />
 
 @if (dataSource(); as ds) {
-  <cdk-virtual-scroll-viewport [itemSize]="rowHeight" class="task-viewport border rounded" minBufferPx="720" maxBufferPx="1440">
-    <div *cdkVirtualFor="let task of ds; trackBy: trackByIndex" class="task-row d-flex align-items-start gap-2 px-2 py-2 border-bottom" [style.height.px]="rowHeight">
+  <cdk-virtual-scroll-viewport [itemSize]="rowHeight()" class="task-viewport border rounded" minBufferPx="720" maxBufferPx="1440">
+    <div *cdkVirtualFor="let task of ds; trackBy: trackByIndex" class="task-row d-flex align-items-start gap-2 px-2 py-2 border-bottom" [style.height.px]="rowHeight()">
       @if (task) {
         <div class="flex-shrink-0 task-checks pt-1">
           <button type="button" class="btn btn-link p-0 lh-1 text-body" (click)="toggleTaskDone(task)" [attr.aria-pressed]="task.completed" title="Toggle done">
@@ -47,19 +47,18 @@
         </div>
 
         <div class="flex-grow-1 min-w-0">
-          <a class="d-block text-truncate text-body text-decoration-none fw-medium" [ngClass]="{'text-decoration-line-through text-muted': task.completed}" routerLink="/tasks/{{ task.id }}">{{ task.title }}</a>
+          <a class="task-title d-block text-body text-decoration-none fw-medium" [ngClass]="{'text-decoration-line-through text-muted': task.completed}" routerLink="/tasks/{{ task.id }}">{{ task.title }}</a>
           @if (task.description) {
             <app-markdown class="d-none d-md-block task-desc text-muted" [value]="task.description" [inline]="true" />
           } @else if (task.completed && task.completed_date) {
             <small class="d-none d-md-block text-muted">✓ Completed {{ task.completed_date | date }}</small>
           }
-          <!-- Tags on mobile: shown under the title (the right-hand column is desktop-only). -->
+          <!-- Tags on mobile: colour dots under the title (the right-hand text pills are desktop-only). -->
           @if (tagsFor(task).length) {
-            <div class="d-flex d-md-none flex-wrap gap-1 mt-1 task-tags-mobile">
+            <div class="d-flex d-md-none flex-wrap gap-2 mt-1 task-dots">
               @for (tag of tagsFor(task); track tag.id) {
-                <button type="button" class="badge rounded-pill tag-pill border-0"
-                        [style.background-color]="tag.color" [style.color]="tag | tagColor"
-                        (click)="filterByTag(tag)" title="Filter by #{{ tag.name }}">{{ tag.name }}</button>
+                <button type="button" class="tag-dot" [style.background-color]="tag.color"
+                        (click)="filterByTag(tag)" [attr.aria-label]="'Filter by ' + tag.name" [title]="tag.name"></button>
               }
             </div>
           }
@@ -73,7 +72,7 @@
           }
         </div>
 
-        <div class="btn-group btn-group-sm flex-shrink-0" role="group" aria-label="task actions">
+        <div class="btn-group btn-group-sm flex-shrink-0 d-none d-md-flex" role="group" aria-label="task actions">
           <button type="button" class="btn" [ngClass]="task.for_today ? 'btn-warning' : 'btn-outline-secondary'" (click)="toggleTaskToday(task)" [attr.aria-pressed]="task.for_today" [disabled]="task.completed" title="Toggle today">
             <svg class="bi" width="14" height="14" role="img" aria-label="Today">
               @if (!task.for_today) {
