@@ -96,7 +96,8 @@ class Project(models.Model):
 class Tag(models.Model):
     name = models.CharField(max_length=255)
     slug = models.SlugField(unique=True)
-    description = models.CharField(max_length=1024, null=True, blank=True)
+    # Free text so it can hold Markdown (rendered in the tag detail view).
+    description = models.TextField(null=True, blank=True)
     color = models.CharField(max_length=7, default="#FFFFFF")
 
     def save(self, **kwargs):

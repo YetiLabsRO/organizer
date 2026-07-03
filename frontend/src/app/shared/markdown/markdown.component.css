@@ -1,0 +1,52 @@
+:host {
+  display: block;
+}
+
+.markdown-body :first-child {
+  margin-top: 0;
+}
+
+.markdown-body :last-child {
+  margin-bottom: 0;
+}
+
+.markdown-body pre {
+  padding: 0.5rem 0.75rem;
+  background: var(--bs-tertiary-bg);
+  border-radius: 0.25rem;
+  overflow-x: auto;
+}
+
+.markdown-body code {
+  font-size: 0.875em;
+}
+
+.markdown-body img {
+  max-width: 100%;
+}
+
+.markdown-body table {
+  width: auto;
+  border-collapse: collapse;
+}
+
+.markdown-body th,
+.markdown-body td {
+  border: 1px solid var(--bs-border-color);
+  padding: 0.25rem 0.5rem;
+}
+
+/* Inline mode: flatten blocks so a description renders on one clamped line in the list. */
+.markdown-inline,
+.markdown-inline * {
+  display: inline;
+  margin: 0;
+  padding: 0;
+  font-size: inherit;
+  font-weight: inherit;
+  white-space: normal;
+}
+
+.markdown-inline br {
+  display: none;
+}

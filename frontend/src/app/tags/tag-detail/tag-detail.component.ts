@@ -7,10 +7,11 @@ import { Tag } from '../tag';
 import { ActivatedRoute, Router } from '@angular/router';
 import { ReverseLuminanceColorPipe } from '../../reverse-luminance-color.pipe';
 import { TaskListComponent } from '../../tasks/task-list/task-list.component';
+import { MarkdownComponent } from '../../shared/markdown/markdown.component';
 
 @Component({
   selector: 'app-tag-detail',
-  imports: [FormsModule, NgClass, ColorPickerDirective, ReverseLuminanceColorPipe, TaskListComponent],
+  imports: [FormsModule, NgClass, ColorPickerDirective, ReverseLuminanceColorPipe, TaskListComponent, MarkdownComponent],
   templateUrl: './tag-detail.component.html',
   styleUrls: ['./tag-detail.component.css'],
   changeDetection: ChangeDetectionStrategy.OnPush,

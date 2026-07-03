@@ -12,24 +12,30 @@ import { Tag } from '../../tags/tag';
 import { TagColorPipe } from '../../tags/tag-color.pipe';
 import { TaskFilters } from '../task-filters';
 import { TaskDataSource, TaskPageLoader, TASK_PAGE_SIZE } from '../task-data-source';
+import { TaskQuickAddComponent, NewTaskRequest } from '../task-quick-add/task-quick-add.component';
+import { MarkdownComponent } from '../../shared/markdown/markdown.component';
 
 @Component({
   selector: 'app-task-list',
-  imports: [FormsModule, NgClass, DatePipe, RouterLink, TagColorPipe, ScrollingModule],
+  imports: [
+    FormsModule, NgClass, DatePipe, RouterLink, TagColorPipe, ScrollingModule,
+    TaskQuickAddComponent, MarkdownComponent,
+  ],
   templateUrl: './task-list.component.html',
   styleUrls: ['./task-list.component.css'],
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class TaskListComponent implements OnInit, OnDestroy {
   /** Fixed row height (px) — required by the CDK fixed-size virtual scroll strategy. */
-  readonly rowHeight = 64;
+  readonly rowHeight = 72;
 
   readonly dataSource = signal<TaskDataSource | null>(null);
   readonly tags = signal<Tag[]>([]);
   readonly totalCount = signal(0);
   readonly filters = signal<{ [k: string]: boolean }>({ today: false, completed: false, todo: true });
+  /** Tag chosen by clicking a pill in the list (in-place filter). */
+  readonly activeTag = signal<Tag | null>(null);
 
-  taskInput = '';
   searchInput = '';
 
   @Input() filters_tags: Tag[] | null = null;
@@ -67,6 +73,16 @@ export class TaskListComponent implements OnInit, OnDestroy {
     this.rebuild();
   }
 
+  filterByTag(tag: Tag): void {
+    this.activeTag.set(tag);
+    this.rebuild();
+  }
+
+  clearTagFilter(): void {
+    this.activeTag.set(null);
+    this.rebuild();
+  }
+
   /** Translate the UI filter toggles + search term into a single paginable query. */
   private buildFilters(): TaskFilters {
     const f = this.filters();
@@ -74,7 +90,7 @@ export class TaskListComponent implements OnInit, OnDestroy {
     if (f['completed'] != f['todo']) {
       completed = f['completed'];
     }
-    const tags: Tag[] | null = this.filters_tags || null;
+    const tags: Tag[] | null = this.activeTag() ? [this.activeTag()!] : (this.filters_tags || null);
     const contains: string | null = this.searchInput.trim() || null;
 
     // "today + completed" = tasks flagged for today OR completed today, honoured server-side in a
@@ -105,40 +121,14 @@ export class TaskListComponent implements OnInit, OnDestroy {
       .subscribe(tags => this.tags.set(tags));
   }
 
-  addTask(taskDescription: string): void {
-    const tag_re = /^(?<title>.+?)(@tags\((?<tags>[\w ,-]+)\))?$/ui;
-    const matches = taskDescription.match(tag_re);
-
-    const tags: string | undefined = matches?.groups?.tags;
-    const title: string | undefined = matches?.groups?.title;
-
-    if (!title) {
-      return;
-    }
-
+  onQuickAdd(request: NewTaskRequest): void {
     const task: Task = {
-      title: title,
+      title: request.title,
       for_today: this.filters()['today'],
+      project: request.project,
       tags: [],
-      _tags: []
+      _tags: request.tags,
     };
-
-    this.taskInput = '';
-
-    if (tags === undefined) {
-      this.taskService.addTask(task).subscribe(() => this.rebuild());
-      return;
-    }
-
-    const parsed_tags: string[] = tags.split(/\s*(?:,|$)\s*/);
-    parsed_tags.forEach((tag: string) => {
-      this.tagService.getTagBySlug(tag).subscribe((found: Tag[]) => {
-        if (found.length) {
-          task.tags.push(found[0].id!);
-          task._tags.push(found[0]);
-        }
-      });
-    });
     this.taskService.addTask(task).subscribe(() => this.rebuild());
   }
 

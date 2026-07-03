@@ -46,10 +46,28 @@
 
       <div class="row mt-2">
         <div class="col-12">
+          <strong class="d-block mb-1">Description <span class="text-muted small">(Markdown)</span></strong>
           @if (!editMode) {
-            <p><strong>Description:</strong> {{ tag.description }}</p>
+            @if (tag.description) {
+              <app-markdown [value]="tag.description" />
+            } @else {
+              <span class="text-muted">No description.</span>
+            }
           } @else {
-            <textarea placeholder="Short Description" class="form-control" [(ngModel)]="tag.description"></textarea>
+            <div class="row g-2">
+              <div class="col-md-6">
+                <textarea placeholder="Write Markdown…" rows="8" class="form-control" [(ngModel)]="tag.description"></textarea>
+              </div>
+              <div class="col-md-6">
+                <div class="border rounded p-2 h-100">
+                  @if (tag.description) {
+                    <app-markdown [value]="tag.description" />
+                  } @else {
+                    <span class="text-muted">Nothing to preview.</span>
+                  }
+                </div>
+              </div>
+            </div>
           }
         </div>
       </div>

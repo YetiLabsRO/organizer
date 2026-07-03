@@ -1,5 +1,13 @@
 <div class="d-flex flex-wrap align-items-baseline justify-content-between gap-2 mb-3">
   <h1 class="h3 mb-0">{{ totalCount() }} Tasks <small class="text-muted fs-6">get things done</small></h1>
+  @if (activeTag(); as tag) {
+    <span class="badge rounded-pill d-inline-flex align-items-center gap-1"
+          [style.background-color]="tag.color" [style.color]="tag | tagColor">
+      #{{ tag.name }}
+      <button type="button" class="tag-remove" [style.color]="tag | tagColor"
+              aria-label="Clear tag filter" (click)="clearTagFilter()">&times;</button>
+    </span>
+  }
 </div>
 
 <div class="d-flex flex-column flex-sm-row gap-2 mb-3">
@@ -16,16 +24,13 @@
   </div>
 </div>
 
-<div class="input-group mb-3">
-  <input id="task-title" class="form-control" [(ngModel)]="taskInput" (keyup.enter)="addTask(taskInput)" placeholder="Add a task… (use @tags(work, urgent))">
-  <button class="btn btn-primary" type="button" (click)="addTask(taskInput)">Add</button>
-</div>
+<app-task-quick-add class="d-block mb-3" (create)="onQuickAdd($event)" />
 
 @if (dataSource(); as ds) {
-  <cdk-virtual-scroll-viewport [itemSize]="rowHeight" class="task-viewport border rounded" minBufferPx="640" maxBufferPx="1280">
-    <div *cdkVirtualFor="let task of ds; trackBy: trackByIndex" class="task-row d-flex align-items-center gap-2 px-2 border-bottom" [style.height.px]="rowHeight">
+  <cdk-virtual-scroll-viewport [itemSize]="rowHeight" class="task-viewport border rounded" minBufferPx="720" maxBufferPx="1440">
+    <div *cdkVirtualFor="let task of ds; trackBy: trackByIndex" class="task-row d-flex align-items-start gap-2 px-2 py-2 border-bottom" [style.height.px]="rowHeight">
       @if (task) {
-        <div class="d-flex flex-column flex-shrink-0 task-checks">
+        <div class="d-flex flex-column flex-shrink-0 task-checks pt-1">
           <button type="button" class="btn btn-link p-0 lh-1 text-body" (click)="toggleTaskDone(task)" [attr.aria-pressed]="task.completed" title="Toggle done">
             <svg class="bi" width="18" height="18" role="img" aria-label="Done">
               @if (!task.completed) {
@@ -48,17 +53,18 @@
 
         <div class="flex-grow-1 min-w-0">
           <a class="d-block text-truncate text-body text-decoration-none fw-medium" [ngClass]="{'text-decoration-line-through text-muted': task.completed}" routerLink="/tasks/{{ task.id }}">{{ task.title }}</a>
-          <small class="d-block text-truncate text-muted task-desc">
-            @if (task.completed && task.completed_date) {
-              <span class="me-1">✓ {{ task.completed_date | date }}</span>
-            }
-            {{ task.description }}
-          </small>
+          @if (task.description) {
+            <app-markdown class="d-block task-desc text-muted" [value]="task.description" [inline]="true" />
+          } @else if (task.completed && task.completed_date) {
+            <small class="d-block text-muted">✓ Completed {{ task.completed_date | date }}</small>
+          }
         </div>
 
         <div class="d-none d-md-flex flex-wrap justify-content-end task-tags">
           @for (tag of task._tags; track tag.id) {
-            <span [style.background-color]="tag.color" [style.color]="tag | tagColor" class="badge rounded-pill">{{ tag.name }}</span>
+            <button type="button" class="badge rounded-pill tag-pill border-0"
+                    [style.background-color]="tag.color" [style.color]="tag | tagColor"
+                    (click)="filterByTag(tag)" title="Filter by #{{ tag.name }}">{{ tag.name }}</button>
           }
         </div>
 
@@ -71,9 +77,9 @@
           </button>
         </div>
       } @else {
-        <div class="flex-grow-1 placeholder-glow">
+        <div class="flex-grow-1 placeholder-glow pt-1">
           <span class="placeholder col-6 rounded"></span>
-          <span class="placeholder placeholder-sm col-4 rounded d-block mt-1"></span>
+          <span class="placeholder placeholder-sm col-4 rounded d-block mt-2"></span>
         </div>
       }
     </div>

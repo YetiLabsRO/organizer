@@ -1,7 +1,11 @@
-#task-title:focus {
-
+.description-editor {
+  min-height: 16rem;
+  font-family: var(--bs-font-monospace);
+  font-size: 0.9rem;
 }
 
-#task-title {
-  font-size: 1em;
+.description-preview {
+  min-height: 16rem;
+  overflow-y: auto;
+  background: var(--bs-body-bg);
 }

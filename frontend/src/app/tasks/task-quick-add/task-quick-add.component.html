@@ -1,0 +1,27 @@
+<div class="quick-add position-relative">
+  <div class="input-group">
+    <input
+      #input
+      type="text"
+      class="form-control"
+      [value]="text()"
+      (input)="onInput($event)"
+      (keydown)="onKeydown($event)"
+      (blur)="closeDropdown()"
+      placeholder="Add a task…  #tag  @project"
+      aria-label="Add a task"
+      autocomplete="off"
+    >
+    <button class="btn btn-primary" type="button" (mousedown)="$event.preventDefault()" (click)="submit()">Add</button>
+  </div>
+
+  @if (dropdownOpen()) {
+    <app-suggestion-list
+      class="quick-add-dropdown"
+      [items]="suggestions()"
+      [activeIndex]="activeIndex()"
+      (pick)="select($event)"
+      (activeChange)="activeIndex.set($event)"
+    />
+  }
+</div>
