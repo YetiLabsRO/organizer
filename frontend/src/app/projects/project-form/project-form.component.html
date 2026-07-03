@@ -1,0 +1,115 @@
+@if (project(); as project) {
+  <h1>{{ project.title }}</h1>
+} @else {
+  <h1>Proiect nou</h1>
+}
+
+<form [formGroup]="projectForm" (ngSubmit)="onSubmit()">
+  <input type="hidden" formControlName="id" id="id">
+  <div class="row">
+    <div class="col-9">
+      <label for="title" class="form-label">Titlu</label>
+      <input class="form-control" id="title" type="text"
+             [ngClass]="{'is-invalid': projectForm.get('title')?.invalid && showErrors()}"
+             formControlName="title" (keyup)="updateSlug()">
+      @if (projectForm.get('title')?.invalid && showErrors()) {
+        <div class="invalid-feedback">
+          @if (projectForm.get('title')?.errors?.serverError) {
+            <div>{{ projectForm.get('title')?.errors?.serverError }}</div>
+          }
+          @if (projectForm.get('title')?.errors?.required) {
+            <div>This field is required.</div>
+          }
+        </div>
+      }
+    </div>
+    <div class="col-3">
+      <label for="slug" class="form-label">Slug</label>
+      <input class="form-control" id="slug" type="text"
+             [ngClass]="{'is-invalid': projectForm.get('slug')?.invalid && showErrors()}"
+             formControlName="slug" readonly>
+      @if (projectForm.get('slug')?.invalid && showErrors()) {
+        <div class="invalid-feedback">
+          @if (projectForm.get('slug')?.errors?.serverError) {
+            <div>{{ projectForm.get('slug')?.errors?.serverError }}</div>
+          }
+        </div>
+      }
+    </div>
+  </div>
+
+  <div class="row mb-2">
+    <div class="col-12">
+      <label for="description">Descriere (link documente): </label>
+      <textarea class="form-control" id="description"
+                [ngClass]="{'is-invalid': projectForm.get('description')?.invalid && showErrors()}"
+                formControlName="description"></textarea>
+      @if (projectForm.get('description')?.invalid && showErrors()) {
+        <div class="invalid-feedback">
+          @if (projectForm.get('description')?.errors?.serverError) {
+            <div>{{ projectForm.get('description')?.errors?.serverError }}</div>
+          }
+        </div>
+      }
+    </div>
+  </div>
+
+  <div class="row mb-2">
+    <div class="col-6">
+      <label for="startDate" class="form-label">Data început</label>
+      <input class="form-control" ngbDatepicker id="startDate" type="text"
+             #sDate="ngbDatepicker" (click)="sDate.toggle()"
+             [ngClass]="{'is-invalid': projectForm.get('start_date')?.invalid && showErrors()}"
+             formControlName="start_date">
+      @if (projectForm.get('start_date')?.invalid && showErrors()) {
+        <div class="invalid-feedback">
+          @if (projectForm.get('start_date')?.errors?.serverError) {
+            <div>{{ projectForm.get('start_date')?.errors?.serverError }}</div>
+          }
+        </div>
+      }
+    </div>
+
+    <div class="col-6">
+      <label for="endDate" class="form-label">Data sfârșit</label>
+      <input class="form-control" ngbDatepicker id="endDate" type="text"
+             (click)="eDate.toggle()" #eDate="ngbDatepicker"
+             [ngClass]="{'is-invalid': projectForm.get('end_date')?.invalid && showErrors()}"
+             formControlName="end_date">
+      @if (projectForm.get('end_date')?.invalid && showErrors()) {
+        <div class="invalid-feedback">
+          @if (projectForm.get('end_date')?.errors?.serverError) {
+            <div>{{ projectForm.get('end_date')?.errors?.serverError }}</div>
+          }
+        </div>
+      }
+    </div>
+  </div>
+
+  <div class="row mb-2">
+    @if (project(); as project) {
+      <div class="col-12">
+        @for (tag of project._tags; track tag.id) {
+          <span [style.background-color]="tag.color"
+                [style.color]="tag.color | reverseLuminanceColor"
+                class="badge me-1 tag">{{ tag.name }}</span>
+        }
+      </div>
+    }
+    <div class="col-12">
+      <tag-input identifyBy="id" displayBy="name" formControlName="_tags" theme='bootstrap'
+                 [onlyFromAutocomplete]="true">
+        <tag-input-dropdown [autocompleteObservable]="searchTags()" [showDropdownIfEmpty]="true" displayBy="name"
+                            identifyBy="id">
+        </tag-input-dropdown>
+      </tag-input>
+    </div>
+  </div>
+  <div class="row mb-2">
+    <div class="col-12">
+      <button class="btn-primary btn" type="submit">Send</button>
+      <button class="float-end btn btn-outline-danger" type="button">Delete</button>
+    </div>
+  </div>
+
+</form>

@@ -1,8 +1,8 @@
-from django.conf.urls import patterns, include, url
-
 from django.contrib import admin
+from django.urls import include, path
 from rest_framework.routers import DefaultRouter
-from organize.views import TaskItemViewSet, MainAppView, TagViewSet, ProjectViewSet, TaskCommentViewSet
+
+from tasks.views import MainAppView, ProjectViewSet, TagViewSet, TaskCommentViewSet, TaskItemViewSet
 
 admin.autodiscover()
 
@@ -13,9 +13,8 @@ router.register(r'project', ProjectViewSet)
 router.register(r'comments', TaskCommentViewSet)
 
 urlpatterns = [
-    url(r'^admin/', include(admin.site.urls)),
-    url(r'^$', MainAppView.as_view(), {}, "index"),
-
-    url(r'^api/', include(router.urls)),
-    url(r'^rest-auth/', include('rest_auth.urls'))
+    path('admin/', admin.site.urls),
+    path('', MainAppView.as_view(), {}, "index"),
+    path('api/', include(router.urls)),
+    path('rest-auth/', include('dj_rest_auth.urls')),
 ]

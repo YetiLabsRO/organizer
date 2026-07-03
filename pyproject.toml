@@ -1,0 +1,38 @@
+[project]
+name = "organizer"
+version = "0.1.0"
+description = "Personal task and project organizer — Django REST API backend."
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+    "django>=5.2",
+    "djangorestframework>=3.16",
+    "dj-rest-auth>=7.0",
+    "django-cors-headers>=4.7",
+    "django-filter>=25.1",
+    "django-model-utils>=5.0",
+    "psycopg[binary]>=3.2",
+    "python-decouple>=3.8",
+]
+
+[dependency-groups]
+dev = [
+    "ruff>=0.10",
+]
+
+[tool.ruff]
+line-length = 120
+target-version = "py312"
+
+[tool.ruff.lint]
+# pycodestyle (E), pyflakes (F), isort (I), pyupgrade (UP), flake8-bugbear (B)
+select = ["E", "F", "I", "UP", "B"]
+
+[tool.ruff.lint.per-file-ignores]
+# Generated migrations: don't enforce line length on Django's output.
+"**/migrations/*.py" = ["E501"]
+# settings.py intentionally star-imports local overrides at the end.
+"organizer/settings.py" = ["F403", "F405"]
+
+[tool.ruff.format]
+quote-style = "double"

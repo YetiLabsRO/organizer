@@ -1,0 +1,33 @@
+<nav class="navbar navbar-expand-lg navbar-dark bg-dark sticky-top">
+  <div class="container">
+    <a class="navbar-brand d-flex align-items-center gap-2" routerLink="/tasks">
+      <svg class="bi" width="28" height="24" role="img" aria-label="Organizer"><use xlink:href="bootstrap-icons/bootstrap-icons.svg#check2-square"></use></svg>
+      <span>Organizer</span>
+    </a>
+
+    <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#mainNav"
+            aria-controls="mainNav" aria-expanded="false" aria-label="Toggle navigation">
+      <span class="navbar-toggler-icon"></span>
+    </button>
+
+    <div class="collapse navbar-collapse" id="mainNav">
+      <ul class="navbar-nav me-auto mb-2 mb-lg-0">
+        <li class="nav-item"><a routerLink="/tasks" class="nav-link" routerLinkActive="active">Tasks</a></li>
+        <li class="nav-item"><a routerLink="/tags" class="nav-link" routerLinkActive="active">Tags</a></li>
+        <li class="nav-item"><a routerLink="/projects" class="nav-link" routerLinkActive="active">Projects</a></li>
+      </ul>
+
+      <div class="d-flex align-items-center">
+        @if (!loggedIn()) {
+          <button type="button" class="btn btn-outline-light btn-sm" routerLink="/login">Login</button>
+        } @else {
+          <span class="navbar-text text-truncate">{{ currentUser()?.email }}</span>
+        }
+      </div>
+    </div>
+  </div>
+</nav>
+
+<main class="container my-3">
+  <router-outlet></router-outlet>
+</main>

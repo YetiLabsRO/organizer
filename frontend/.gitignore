@@ -1,0 +1,14 @@
+# Angular / Node
+/node_modules
+/dist
+/out-tsc
+/.angular/cache
+/tmp
+
+# Build / coverage
+/coverage
+
+# IDE / OS
+.DS_Store
+Thumbs.db
+*.log

@@ -1,0 +1,20 @@
+<h1>Projects <a routerLink="/projects/edit" class="btn btn-primary float-end">Add</a> </h1>
+
+
+<ul class = "list-group border-0">
+  @for (project of projects(); track project.id) {
+    <li class = "list-group-item border-0" (click)="onSelect(project)">
+      <div class = "row">
+        <div class = "col-10"><a routerLink="/projects/{{ project.id }}">{{ project.title }}</a>
+          <br> <small>{{ project.description }}</small></div>
+        <div class = "col-2">
+          @for (tag of project._tags; track tag.id) {
+            <span [style.background-color]="tag.color"
+                  [style.color]="reverseLuminance(tag.color)"
+                  class="badge m-1 tag">{{ tag.name }}</span>
+          }
+        </div>
+      </div>
+    </li>
+  }
+</ul>

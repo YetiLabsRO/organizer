@@ -1,0 +1,116 @@
+@if (task(); as t) {
+  <div class="d-flex flex-wrap align-items-center gap-2 mb-3">
+    <a routerLink="/tasks" class="btn btn-sm btn-outline-secondary">
+      <svg class="bi" width="14" height="14" role="img" aria-label="Back"><use xlink:href="bootstrap-icons/bootstrap-icons.svg#arrow-left"></use></svg>
+      Tasks
+    </a>
+    <h1 class="h4 mb-0 me-auto text-truncate" [ngClass]="{'text-decoration-line-through text-muted': t.completed}">{{ t.title || 'Untitled task' }}</h1>
+
+    <button type="button" class="btn btn-sm" [ngClass]="t.completed ? 'btn-success' : 'btn-outline-success'" (click)="toggleCompleted()">
+      <svg class="bi me-1" width="14" height="14" role="img" aria-label="Complete"><use xlink:href="bootstrap-icons/bootstrap-icons.svg#check2"></use></svg>
+      {{ t.completed ? 'Completed' : 'Mark done' }}
+    </button>
+    <button type="button" class="btn btn-sm btn-primary" (click)="save()" [disabled]="saving()">
+      {{ saving() ? 'Saving…' : 'Save' }}
+    </button>
+    <button type="button" class="btn btn-sm btn-outline-danger" data-bs-toggle="modal" data-bs-target="#deleteModal" aria-label="Delete">
+      <svg class="bi" width="14" height="14" role="img" aria-label="Delete"><use xlink:href="bootstrap-icons/bootstrap-icons.svg#trash"></use></svg>
+    </button>
+  </div>
+
+  <div class="row g-3">
+    <div class="col-12">
+      <label class="form-label" for="td-title">Title</label>
+      <input id="td-title" class="form-control form-control-lg" [(ngModel)]="t.title" placeholder="Task title">
+    </div>
+
+    <div class="col-6 col-md-3">
+      <label class="form-label" for="td-status">Status</label>
+      <select id="td-status" class="form-select" [(ngModel)]="t.status">
+        @for (s of statuses; track s.value) {
+          <option [ngValue]="s.value">{{ s.label }}</option>
+        }
+      </select>
+    </div>
+    <div class="col-6 col-md-3">
+      <label class="form-label" for="td-priority">Priority</label>
+      <select id="td-priority" class="form-select" [(ngModel)]="t.priority">
+        @for (p of priorities; track p.value) {
+          <option [ngValue]="p.value">{{ p.label }}</option>
+        }
+      </select>
+    </div>
+    <div class="col-6 col-md-3">
+      <label class="form-label" for="td-estimate">Estimated (min)</label>
+      <input id="td-estimate" type="number" min="0" class="form-control" [(ngModel)]="t.estimated_time" placeholder="—">
+    </div>
+    <div class="col-6 col-md-3 d-flex align-items-end">
+      <div class="form-check form-switch">
+        <input id="td-today" class="form-check-input" type="checkbox" [(ngModel)]="t.for_today">
+        <label class="form-check-label" for="td-today">Focus today</label>
+      </div>
+    </div>
+
+    <div class="col-md-6">
+      <label class="form-label" for="td-start">Start date</label>
+      <input id="td-start" type="datetime-local" class="form-control" [value]="dateForInput(t.start_date)" (change)="onDateChange('start_date', $event)">
+    </div>
+    <div class="col-md-6">
+      <label class="form-label" for="td-end">Deadline</label>
+      <input id="td-end" type="datetime-local" class="form-control" [value]="dateForInput(t.end_date)" (change)="onDateChange('end_date', $event)">
+    </div>
+
+    <div class="col-md-6">
+      <label class="form-label">Project</label>
+      <app-project-picker [(projectId)]="t.project" />
+    </div>
+    <div class="col-md-6">
+      <label class="form-label">Tags</label>
+      <app-tag-chips-input [(tags)]="t._tags" />
+    </div>
+
+    <div class="col-12">
+      <div class="d-flex align-items-center justify-content-between mb-1">
+        <label class="form-label mb-0">Description <span class="text-muted small">(Markdown)</span></label>
+        <div class="btn-group btn-group-sm d-md-none" role="group" aria-label="editor mode">
+          <button type="button" class="btn" [ngClass]="!previewOnly() ? 'btn-secondary' : 'btn-outline-secondary'" (click)="previewOnly.set(false)">Write</button>
+          <button type="button" class="btn" [ngClass]="previewOnly() ? 'btn-secondary' : 'btn-outline-secondary'" (click)="previewOnly.set(true)">Preview</button>
+        </div>
+      </div>
+      <div class="row g-2">
+        <div class="col-md-6" [class.d-none]="previewOnly()">
+          <textarea class="form-control description-editor" rows="12" [(ngModel)]="t.description" placeholder="Write Markdown…"></textarea>
+        </div>
+        <div class="col-md-6 d-md-block" [class.d-none]="!previewOnly()">
+          <div class="border rounded p-2 h-100 description-preview">
+            @if (t.description) {
+              <app-markdown [value]="t.description" />
+            } @else {
+              <span class="text-muted">Nothing to preview.</span>
+            }
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+} @else {
+  <div class="text-muted py-5 text-center">Loading task…</div>
+}
+
+<div class="modal fade" id="deleteModal" tabindex="-1" aria-labelledby="deleteModalLabel" aria-hidden="true">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h1 class="modal-title fs-5 text-danger" id="deleteModalLabel">Delete task?</h1>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        Are you sure you want to delete <strong>{{ task()?.title }}</strong>?
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
+        <button type="button" class="btn btn-danger" (click)="deleteTask()" data-bs-dismiss="modal">Delete</button>
+      </div>
+    </div>
+  </div>
+</div>

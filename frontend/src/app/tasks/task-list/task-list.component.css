@@ -1,0 +1,112 @@
+/* Virtual-scroll viewport fills the space under the toolbar; it scrolls internally
+   so the page itself never grows with the task count. */
+.task-viewport {
+  height: calc(100vh - 320px);
+  min-height: 320px;
+  overflow-x: hidden;
+}
+
+.task-row {
+  background: var(--bs-body-bg);
+}
+
+.task-row:hover {
+  background: var(--bs-tertiary-bg);
+}
+
+/* Let flex children truncate instead of overflowing (min-width:0 fixes text-truncate in flex). */
+.min-w-0 {
+  min-width: 0;
+}
+
+/* Description renders Markdown inline, clamped to one line so rows stay fixed-height. */
+.task-desc {
+  display: -webkit-box;
+  -webkit-line-clamp: 1;
+  line-clamp: 1;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  font-size: 0.82rem;
+  line-height: 1.3;
+}
+
+.task-checks {
+  width: 1.75rem;
+  align-items: center;
+  gap: 0.2rem;
+}
+
+/* Tags column: capped width, wrapping badges, hidden on small screens. */
+.task-tags {
+  max-width: 42%;
+  gap: 0.3rem;
+  overflow: hidden;
+  max-height: 3.4rem;
+}
+
+/* Title: single-line ellipsis on desktop; wraps to two lines on mobile so more is readable. */
+.task-title {
+  display: block;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Mobile tag dots (colour only, no text) under the title. */
+.task-dots {
+  max-height: 1.1rem;
+  overflow: hidden;
+}
+
+.tag-dot {
+  width: 0.85rem;
+  height: 0.85rem;
+  padding: 0;
+  border-radius: 50%;
+  border: 1px solid rgba(0, 0, 0, 0.2);
+  cursor: pointer;
+}
+
+@media (max-width: 767.98px) {
+  .task-title {
+    white-space: normal;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    line-clamp: 2;
+    -webkit-box-orient: vertical;
+    line-height: 1.25;
+  }
+}
+
+/* Bigger, clickable tag pills. */
+.tag-pill {
+  font-size: 0.8rem;
+  font-weight: 600;
+  padding: 0.35em 0.7em;
+  cursor: pointer;
+  transition: filter 0.1s ease-in-out;
+}
+
+.tag-pill:hover {
+  filter: brightness(0.92);
+}
+
+.tag-remove {
+  border: 0;
+  background: transparent;
+  line-height: 1;
+  padding: 0 0 0 0.25rem;
+  cursor: pointer;
+  font-size: 1.05em;
+  opacity: 0.85;
+}
+
+.tag-remove:hover {
+  opacity: 1;
+}
+
+@media (max-width: 575.98px) {
+  .task-viewport {
+    height: calc(100vh - 340px);
+  }
+}

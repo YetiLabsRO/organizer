@@ -1,0 +1,78 @@
+<div class="container">
+  @if (tag(); as tag) {
+    <div>
+      <div class="row">
+        <div class="col-11">
+          @if (editMode) {
+            <input id="tag-title" class="tag-title form-control" [(ngModel)]="tag.name"
+                   (keyup)="updateTagSlug()"
+                   placeholder="Tag name"
+                   [style.background-color]="tag.color"
+                   [style.color]="tag.color | reverseLuminanceColor" [(colorPicker)]="tag.color"
+                   [style.backround-color]="tag.color">
+          } @else {
+            <h1 class="display-1">
+              <span class="badge"
+                    [style.background-color]="tag.color"
+                    [style.color]="tag.color | reverseLuminanceColor">{{ tag.name }}</span>
+            </h1>
+          }
+        </div>
+        <div class="col-1">
+          <div class="btn-group" role="toolbar" aria-label="task toolbar">
+            <button type="button" [ngClass]="{'btn-outline-secondary': !editMode, 'btn-secondary': editMode}" class="btn btn-outline-secondary" (click)="toggleEditMode()">
+              <svg class="bi" width="12" height="12" role="img" aria-label="Edit">
+                <use xlink:href="bootstrap-icons/bootstrap-icons.svg#pencil"></use>
+              </svg>
+            </button>
+            <button type="button" class="btn btn-outline-danger" data-bs-toggle="modal" data-bs-target="#deleteModal">
+              <svg class="bi" width="12" height="12" role="img" aria-label="Trashcan">
+                <use xlink:href="bootstrap-icons/bootstrap-icons.svg#trash"></use>
+              </svg>
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <div class="row mt-2">
+        <div class="col-12">
+          @if (!editMode) {
+            <p><strong>Slug:</strong> {{ tag.slug }}</p>
+          } @else {
+            <input placeholder="Slug" type="text" class="form-control" [(ngModel)]="tag.slug">
+          }
+        </div>
+      </div>
+
+      <div class="row mt-2">
+        <div class="col-12">
+          <strong class="d-block mb-1">Description <span class="text-muted small">(Markdown)</span></strong>
+          @if (!editMode) {
+            @if (tag.description) {
+              <app-markdown [value]="tag.description" />
+            } @else {
+              <span class="text-muted">No description.</span>
+            }
+          } @else {
+            <div class="row g-2">
+              <div class="col-md-6">
+                <textarea placeholder="Write Markdown…" rows="8" class="form-control" [(ngModel)]="tag.description"></textarea>
+              </div>
+              <div class="col-md-6">
+                <div class="border rounded p-2 h-100">
+                  @if (tag.description) {
+                    <app-markdown [value]="tag.description" />
+                  } @else {
+                    <span class="text-muted">Nothing to preview.</span>
+                  }
+                </div>
+              </div>
+            </div>
+          }
+        </div>
+      </div>
+
+      <app-task-list [filters_tags]="[tag]"></app-task-list>
+    </div>
+  }
+</div>

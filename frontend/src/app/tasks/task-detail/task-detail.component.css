@@ -1,0 +1,11 @@
+.description-editor {
+  min-height: 16rem;
+  font-family: var(--bs-font-monospace);
+  font-size: 0.9rem;
+}
+
+.description-preview {
+  min-height: 16rem;
+  overflow-y: auto;
+  background: var(--bs-body-bg);
+}
