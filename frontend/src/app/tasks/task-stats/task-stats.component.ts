@@ -16,6 +16,7 @@ import { ChartCanvasComponent } from '../../shared/chart-canvas/chart-canvas.com
 import { CalendarHeatmapComponent } from '../../shared/calendar-heatmap/calendar-heatmap.component';
 
 type CompletedState = 'all' | 'todo' | 'done';
+type PeriodKey = 'today' | 'week' | 'month' | 'all' | 'custom';
 
 const UNTAGGED = '(untagged)';
 const FALLBACK_COLOR = '#adb5bd';
@@ -55,6 +56,21 @@ export class TaskStatsComponent {
     return c === 'true' ? 'done' : c === 'false' ? 'todo' : 'all';
   });
   readonly activeSlugs = computed(() => new Set(this.params()?.getAll('tags') ?? []));
+
+  // Completion-date window ("period") state, derived from the URL.
+  readonly afterParam = computed(() => this.params()?.get('completed_after') ?? null);
+  readonly beforeParam = computed(() => this.params()?.get('completed_before') ?? null);
+  readonly periodActive = computed(() => !!this.afterParam() || !!this.beforeParam());
+  readonly activePeriod = computed<PeriodKey>(() => {
+    const a = this.afterParam();
+    const b = this.beforeParam();
+    if (!a && !b) return 'all';
+    const p = this.periodPresets();
+    if (a === p.today.after && b === p.today.before) return 'today';
+    if (a === p.week.after && b === p.week.before) return 'week';
+    if (a === p.month.after && b === p.month.before) return 'month';
+    return 'custom';
+  });
 
   searchInput = '';
   private readonly search$ = new Subject<string>();
@@ -110,6 +126,23 @@ export class TaskStatsComponent {
     this.search$.next(term);
   }
 
+  setPeriod(key: 'today' | 'week' | 'month' | 'all'): void {
+    if (key === 'all') {
+      this.updateParams({ completed_after: null, completed_before: null });
+      return;
+    }
+    const preset = this.periodPresets()[key];
+    this.updateParams({ completed_after: preset.after, completed_before: preset.before });
+  }
+
+  onPeriodFrom(value: string): void {
+    this.updateParams({ completed_after: value || null });
+  }
+
+  onPeriodTo(value: string): void {
+    this.updateParams({ completed_before: value || null });
+  }
+
   toggleTag(tag: Tag): void {
     const slugs = new Set(this.activeSlugs());
     if (slugs.has(tag.slug)) slugs.delete(tag.slug);
@@ -142,7 +175,40 @@ export class TaskStatsComponent {
     const tags = slugs.length ? slugs.map((slug) => ({ slug }) as Tag) : null;
     const forToday = params.get('for_today') === 'true' ? true : null;
     const todayView = params.get('today_view') === 'true' ? true : null;
-    return new TaskFilters(completed, params.get('contains'), null, tags, forToday, todayView);
+    const filters = new TaskFilters(completed, params.get('contains'), null, tags, forToday, todayView);
+    const after = params.get('completed_after');
+    const before = params.get('completed_before');
+    if (after) filters.completed_after = this.parseDate(after);
+    if (before) filters.completed_before = this.parseDate(before);
+    return filters;
+  }
+
+  /** Preset windows (as local ISO dates) relative to today, for the period selector. */
+  private periodPresets(): { [K in 'today' | 'week' | 'month']: { after: string; before: string } } {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const minus = (n: number) => {
+      const d = new Date(today);
+      d.setDate(d.getDate() - n);
+      return d;
+    };
+    const t = this.iso(today);
+    return {
+      today: { after: t, before: t },
+      week: { after: this.iso(minus(6)), before: t }, // rolling last 7 days
+      month: { after: this.iso(minus(29)), before: t }, // rolling last 30 days
+    };
+  }
+
+  private iso(d: Date): string {
+    const m = `${d.getMonth() + 1}`.padStart(2, '0');
+    const day = `${d.getDate()}`.padStart(2, '0');
+    return `${d.getFullYear()}-${m}-${day}`;
+  }
+
+  private parseDate(iso: string): Date {
+    const [y, m, d] = iso.split('-').map(Number);
+    return new Date(y, m - 1, d);
   }
 
   // --- chart configurations (computed from the stats payload) ---

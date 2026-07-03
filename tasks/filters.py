@@ -36,6 +36,11 @@ class TaskFilterSet(filters.FilterSet):
     priority = filters.ChoiceFilter(choices=TaskItem.TASKITEM_PRIORITIES)
     completed_date = filters.DateFilter("completed_date", "date")
 
+    # Completion-date range: powers the stats "period" selector (today / last week / last month /
+    # custom / all-time). Bounds are inclusive and compared on the local date of completed_date.
+    completed_after = filters.DateFilter("completed_date", "date__gte")
+    completed_before = filters.DateFilter("completed_date", "date__lte")
+
     # conjoined=True → AND across multiple tags (a task must carry *all* requested tags).
     tags = filters.ModelMultipleChoiceFilter(
         field_name="tags__slug",
@@ -56,5 +61,6 @@ class TaskFilterSet(filters.FilterSet):
     class Meta:
         model = TaskItem
         fields = ["contains", "completed", "status", "priority", "tags",
-                  "completed_date", "owner", "start_date", "end_date", "for_today", "today_view"]
+                  "completed_date", "completed_after", "completed_before", "owner",
+                  "start_date", "end_date", "for_today", "today_view"]
 
