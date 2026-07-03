@@ -44,6 +44,12 @@
   max-height: 3.4rem;
 }
 
+/* Mobile tag row (shown under the title); clamp to one line so the fixed row height holds. */
+.task-tags-mobile {
+  max-height: 1.6rem;
+  overflow: hidden;
+}
+
 /* Bigger, clickable tag pills. */
 .tag-pill {
   font-size: 0.8rem;

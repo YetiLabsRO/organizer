@@ -81,6 +81,21 @@ class TaskListPaginationTests(APITestCase):
         self.assertEqual(titles, {"focus", "done"})
         self.assertIn(focus.pk, {t["id"] for t in response.data["results"]})
 
+    def test_multiple_tags_filter_is_conjoined_and(self):
+        from tasks.models import Tag
+
+        work = Tag.objects.create(name="work", slug="work")
+        urgent = Tag.objects.create(name="urgent", slug="urgent")
+        both = TaskItem.objects.create(title="both", owner=self.user)
+        both.tags.set([work, urgent])
+        only_work = TaskItem.objects.create(title="onlywork", owner=self.user)
+        only_work.tags.set([work])
+
+        response = self.client.get("/api/task/?tags=work&tags=urgent")
+
+        titles = [t["title"] for t in response.data["results"]]
+        self.assertEqual(titles, ["both"])
+
 
 class BackfillTaskOwnerCommandTests(TestCase):
     """The ownership backfill used to un-hide legacy tasks after owner scoping."""

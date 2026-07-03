@@ -1,4 +1,4 @@
-import { ChangeDetectionStrategy, Component, Input, OnDestroy, OnInit, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, Input, OnDestroy, OnInit, computed, signal } from '@angular/core';
 import { NgClass, DatePipe } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
@@ -33,8 +33,11 @@ export class TaskListComponent implements OnInit, OnDestroy {
   readonly tags = signal<Tag[]>([]);
   readonly totalCount = signal(0);
   readonly filters = signal<{ [k: string]: boolean }>({ today: false, completed: false, todo: true });
-  /** Tag chosen by clicking a pill in the list (in-place filter). */
-  readonly activeTag = signal<Tag | null>(null);
+  /** Tags chosen by clicking pills in the list — combined with AND (a task must have all of them). */
+  readonly activeTags = signal<Tag[]>([]);
+
+  /** id → Tag lookup built from all loaded tags; drives reactive per-row tag rendering. */
+  private readonly tagsById = computed(() => new Map(this.tags().map((t) => [t.id, t])));
 
   searchInput = '';
 
@@ -73,14 +76,29 @@ export class TaskListComponent implements OnInit, OnDestroy {
     this.rebuild();
   }
 
+  /** Add a tag to the active AND-filter (clicking a pill on a task). */
   filterByTag(tag: Tag): void {
-    this.activeTag.set(tag);
+    if (this.activeTags().some((t) => t.id === tag.id)) return;
+    this.activeTags.update((tags) => [...tags, tag]);
+    this.rebuild();
+  }
+
+  removeTagFilter(tag: Tag): void {
+    this.activeTags.update((tags) => tags.filter((t) => t.id !== tag.id));
     this.rebuild();
   }
 
   clearTagFilter(): void {
-    this.activeTag.set(null);
+    this.activeTags.set([]);
     this.rebuild();
+  }
+
+  /** Resolve a task's tag ids to Tag objects via the loaded tag map (reactive — all rows update). */
+  tagsFor(task: Task): Tag[] {
+    const byId = this.tagsById();
+    return (task.tags ?? [])
+      .map((id) => byId.get(id))
+      .filter((tag): tag is Tag => !!tag);
   }
 
   /** Translate the UI filter toggles + search term into a single paginable query. */
@@ -90,7 +108,10 @@ export class TaskListComponent implements OnInit, OnDestroy {
     if (f['completed'] != f['todo']) {
       completed = f['completed'];
     }
-    const tags: Tag[] | null = this.activeTag() ? [this.activeTag()!] : (this.filters_tags || null);
+    // AND all tag constraints: any tags passed in (e.g. the tag detail page) plus clicked pills.
+    const combined = [...(this.filters_tags ?? []), ...this.activeTags()];
+    const deduped = combined.filter((t, i, arr) => arr.findIndex((x) => x.id === t.id) === i);
+    const tags: Tag[] | null = deduped.length ? deduped : null;
     const contains: string | null = this.searchInput.trim() || null;
 
     // "today + completed" = tasks flagged for today OR completed today, honoured server-side in a

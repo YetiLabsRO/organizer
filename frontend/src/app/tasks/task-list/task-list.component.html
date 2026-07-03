@@ -1,12 +1,16 @@
 <div class="d-flex flex-wrap align-items-baseline justify-content-between gap-2 mb-3">
   <h1 class="h3 mb-0">{{ totalCount() }} Tasks <small class="text-muted fs-6">get things done</small></h1>
-  @if (activeTag(); as tag) {
-    <span class="badge rounded-pill d-inline-flex align-items-center gap-1"
-          [style.background-color]="tag.color" [style.color]="tag | tagColor">
-      #{{ tag.name }}
-      <button type="button" class="tag-remove" [style.color]="tag | tagColor"
-              aria-label="Clear tag filter" (click)="clearTagFilter()">&times;</button>
-    </span>
+  @if (activeTags().length) {
+    <div class="d-flex flex-wrap gap-1">
+      @for (tag of activeTags(); track tag.id) {
+        <span class="badge rounded-pill d-inline-flex align-items-center gap-1"
+              [style.background-color]="tag.color" [style.color]="tag | tagColor">
+          #{{ tag.name }}
+          <button type="button" class="tag-remove" [style.color]="tag | tagColor"
+                  aria-label="Remove tag filter" (click)="removeTagFilter(tag)">&times;</button>
+        </span>
+      }
+    </div>
   }
 </div>
 
@@ -45,14 +49,24 @@
         <div class="flex-grow-1 min-w-0">
           <a class="d-block text-truncate text-body text-decoration-none fw-medium" [ngClass]="{'text-decoration-line-through text-muted': task.completed}" routerLink="/tasks/{{ task.id }}">{{ task.title }}</a>
           @if (task.description) {
-            <app-markdown class="d-block task-desc text-muted" [value]="task.description" [inline]="true" />
+            <app-markdown class="d-none d-md-block task-desc text-muted" [value]="task.description" [inline]="true" />
           } @else if (task.completed && task.completed_date) {
-            <small class="d-block text-muted">✓ Completed {{ task.completed_date | date }}</small>
+            <small class="d-none d-md-block text-muted">✓ Completed {{ task.completed_date | date }}</small>
+          }
+          <!-- Tags on mobile: shown under the title (the right-hand column is desktop-only). -->
+          @if (tagsFor(task).length) {
+            <div class="d-flex d-md-none flex-wrap gap-1 mt-1 task-tags-mobile">
+              @for (tag of tagsFor(task); track tag.id) {
+                <button type="button" class="badge rounded-pill tag-pill border-0"
+                        [style.background-color]="tag.color" [style.color]="tag | tagColor"
+                        (click)="filterByTag(tag)" title="Filter by #{{ tag.name }}">{{ tag.name }}</button>
+              }
+            </div>
           }
         </div>
 
         <div class="d-none d-md-flex flex-wrap justify-content-end task-tags">
-          @for (tag of task._tags; track tag.id) {
+          @for (tag of tagsFor(task); track tag.id) {
             <button type="button" class="badge rounded-pill tag-pill border-0"
                     [style.background-color]="tag.color" [style.color]="tag | tagColor"
                     (click)="filterByTag(tag)" title="Filter by #{{ tag.name }}">{{ tag.name }}</button>

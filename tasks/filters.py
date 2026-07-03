@@ -36,10 +36,12 @@ class TaskFilterSet(filters.FilterSet):
     priority = filters.ChoiceFilter(choices=TaskItem.TASKITEM_PRIORITIES)
     completed_date = filters.DateFilter("completed_date", "date")
 
+    # conjoined=True → AND across multiple tags (a task must carry *all* requested tags).
     tags = filters.ModelMultipleChoiceFilter(
         field_name="tags__slug",
         to_field_name="slug",
-        queryset=Tag.objects.all()
+        queryset=Tag.objects.all(),
+        conjoined=True,
     )
 
     # Combined daily view: tasks flagged for today OR completed today, in a single paginable query.

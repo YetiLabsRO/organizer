@@ -7,7 +7,8 @@ import {Item} from './item';
 
 export class ItemCacheService {
   itemCache: { [id: number] : Item} = {};
-  static MAX_AGE = 3600;
+  // Max cache age in milliseconds (timestamps are compared in ms). 1 hour.
+  static MAX_AGE = 3600 * 1000;
 
   constructor() { }
 
