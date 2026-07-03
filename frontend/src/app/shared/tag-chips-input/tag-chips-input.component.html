@@ -8,7 +8,7 @@
     </span>
   }
   <input #input type="text" class="tag-chips-input flex-grow-1"
-         [value]="text()" (input)="onInput($event)" (keydown)="onKeydown($event)" (blur)="closeDropdown()"
+         [value]="text()" (input)="onInput($event)" (keydown)="onKeydown($event)" (focus)="onFocus()" (blur)="closeDropdown()"
          placeholder="Add tag…" autocomplete="off">
 
   @if (dropdownOpen()) {

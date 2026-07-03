@@ -1,6 +1,5 @@
 import { ChangeDetectionStrategy, Component, ElementRef, signal, output, viewChild } from '@angular/core';
-import { forkJoin, of, Subject } from 'rxjs';
-import { debounceTime, switchMap } from 'rxjs/operators';
+import { forkJoin } from 'rxjs';
 import { TagService } from '../../tags/tag.service';
 import { ProjectService } from '../../projects/project.service';
 import { Project } from '../../projects/project';
@@ -44,27 +43,11 @@ export class TaskQuickAddComponent {
   private tokenStart = -1;
   private tokenEnd = -1;
   private projects: Project[] = [];
-  private readonly query$ = new Subject<{ trigger: Trigger; query: string }>();
+  private tags: Tag[] = [];
 
   constructor(private tagService: TagService, private projectService: ProjectService) {
     this.projectService.getProjectsCached().subscribe((projects) => (this.projects = projects));
-
-    this.query$
-      .pipe(
-        debounceTime(150),
-        switchMap(({ trigger, query }) =>
-          trigger === '#'
-            ? this.tagService.searchTags(query)
-            : of(this.filterProjects(query)),
-        ),
-      )
-      .subscribe((results) => {
-        const suggestions = this.trigger === '#'
-          ? (results as Tag[]).map((t) => this.tagSuggestion(t))
-          : (results as Project[]).map((p) => this.projectSuggestion(p));
-        this.suggestions.set(suggestions);
-        this.activeIndex.set(0);
-      });
+    this.tagService.getTagsCached().subscribe((tags) => (this.tags = tags));
   }
 
   onInput(event: Event): void {
@@ -77,10 +60,25 @@ export class TaskQuickAddComponent {
       this.tokenStart = token.start;
       this.tokenEnd = caret;
       this.dropdownOpen.set(true);
-      this.query$.next({ trigger: token.trigger, query: token.query });
+      this.refreshSuggestions(token.trigger, token.query);
     } else {
       this.closeDropdown();
     }
+  }
+
+  private refreshSuggestions(trigger: Trigger, query: string): void {
+    const suggestions: Suggestion[] = trigger === '#'
+      ? this.filterTags(query).map((t) => this.tagSuggestion(t))
+      : this.filterProjects(query).map((p) => this.projectSuggestion(p));
+    this.suggestions.set(suggestions);
+    this.activeIndex.set(0);
+  }
+
+  private filterTags(query: string): Tag[] {
+    const q = query.toLowerCase();
+    return this.tags
+      .filter((t) => t.name.toLowerCase().includes(q) || t.slug.toLowerCase().includes(q))
+      .slice(0, 8);
   }
 
   onKeydown(event: KeyboardEvent): void {

@@ -1,6 +1,4 @@
 import { ChangeDetectionStrategy, Component, ElementRef, model, signal, viewChild } from '@angular/core';
-import { Subject } from 'rxjs';
-import { debounceTime, switchMap } from 'rxjs/operators';
 import { Tag } from '../../tags/tag';
 import { TagService } from '../../tags/tag.service';
 import { SuggestionListComponent, Suggestion } from '../autocomplete/suggestion-list.component';
@@ -29,33 +27,39 @@ export class TagChipsInputComponent {
 
   private readonly inputRef = viewChild.required<ElementRef<HTMLInputElement>>('input');
   private readonly tagsById = new Map<number, Tag>();
-  private readonly query$ = new Subject<string>();
+  /** Full tag list, loaded once; filtered client-side (the API doesn't filter tags by name). */
+  private allTags: Tag[] = [];
 
   constructor(private tagService: TagService) {
-    this.query$
-      .pipe(
-        debounceTime(150),
-        switchMap((q) => this.tagService.searchTags(q)),
-      )
-      .subscribe((tags) => {
-        const selected = new Set(this.tags().map((t) => t.id));
-        const available = tags.filter((t) => !selected.has(t.id));
-        available.forEach((t) => this.tagsById.set(t.id, t));
-        this.suggestions.set(available.map((t) => this.toSuggestion(t)));
-        this.activeIndex.set(0);
-      });
+    this.tagService.getTagsCached().subscribe((tags) => {
+      this.allTags = tags;
+      tags.forEach((t) => this.tagsById.set(t.id, t));
+    });
+  }
+
+  private refreshSuggestions(query: string): void {
+    const q = query.toLowerCase();
+    const selected = new Set(this.tags().map((t) => t.id));
+    this.suggestions.set(
+      this.allTags
+        .filter((t) => !selected.has(t.id))
+        .filter((t) => t.name.toLowerCase().includes(q) || t.slug.toLowerCase().includes(q))
+        .slice(0, 10)
+        .map((t) => this.toSuggestion(t)),
+    );
+    this.activeIndex.set(0);
   }
 
   onInput(event: Event): void {
     const value = (event.target as HTMLInputElement).value;
     this.text.set(value);
-    const query = value.replace(/^#/, '').trim();
-    if (query.length === 0 && value !== '#') {
-      this.closeDropdown();
-      return;
-    }
     this.dropdownOpen.set(true);
-    this.query$.next(query);
+    this.refreshSuggestions(value.replace(/^#/, '').trim());
+  }
+
+  onFocus(): void {
+    this.dropdownOpen.set(true);
+    this.refreshSuggestions(this.text().replace(/^#/, '').trim());
   }
 
   onKeydown(event: KeyboardEvent): void {
