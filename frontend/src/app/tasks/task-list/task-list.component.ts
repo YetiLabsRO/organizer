@@ -131,6 +131,11 @@ export class TaskListComponent implements OnInit, OnDestroy {
     return new TaskFilters(completed, contains, null, tags, forToday, null);
   }
 
+  /** Query params for the stats page so it opens with the list's currently active filters. */
+  get statsQueryParams(): { [k: string]: string | string[] } {
+    return this.buildFilters().getQueryParams();
+  }
+
   private makeLoader(): TaskPageLoader {
     const filters = this.buildFilters();
     return (offset: number, limit: number) =>

@@ -14,6 +14,11 @@ export const routes: Routes = [
   { path: '', redirectTo: '/tasks', pathMatch: 'full' },
   { path: 'login', component: LoginComponent },
   { path: 'tasks', component: TaskListComponent, canActivate: [AuthenticatedGuard] },
+  {
+    path: 'tasks/stats',
+    loadComponent: () => import('./tasks/task-stats/task-stats.component').then((m) => m.TaskStatsComponent),
+    canActivate: [AuthenticatedGuard],
+  },
   { path: 'tasks/:id', component: TaskDetailComponent, canActivate: [AuthenticatedGuard] },
   { path: 'tags', component: TagListComponent, canActivate: [AuthenticatedGuard] },
   { path: 'tags/create/', component: TagDetailComponent, canActivate: [AuthenticatedGuard] },

@@ -52,4 +52,22 @@ export class TaskFilters {
     let queryString = this.getQueryString()
     return queryString ? `${url}?${queryString}` : url
   }
+
+  /** Angular Router queryParams object (tags become a repeated key) — used to carry filters into
+   *  the stats page so it reflects exactly the list's filters and stays bookmarkable. */
+  getQueryParams(): { [k: string]: string | string[] } {
+    const params: { [k: string]: string | string[] } = {};
+    ["completed", "contains", "for_today", "today_view"].forEach((item) => {
+      if (this[item] !== null && this[item] !== undefined) {
+        params[item] = String(this[item]);
+      }
+    });
+    if (this.tags && this.tags.length) {
+      params["tags"] = this.tags.map((tag: Tag) => tag.slug);
+    }
+    if (this.completed_date) {
+      params["completed_date"] = formatDate(this.completed_date, "yyyy-MM-dd", "en-US");
+    }
+    return params;
+  }
 }
