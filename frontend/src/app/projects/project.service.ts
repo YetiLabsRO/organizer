@@ -4,7 +4,7 @@ import {MessageService} from '../message.service';
 import {TagService} from '../tags/tag.service';
 import {BehaviorSubject, Observable, throwError} from 'rxjs';
 import {Project} from './project';
-import {catchError, filter, tap} from 'rxjs/operators';
+import {catchError, filter, shareReplay, tap} from 'rxjs/operators';
 import {ServiceBase} from '../service-base';
 import {Tag} from '../tags/tag';
 import {Task} from '../tasks/task';
@@ -45,6 +45,16 @@ export class ProjectService extends ServiceBase {
     } else {
       project._tags = []
     }
+  }
+
+  private projectsCache$?: Observable<Project[]>;
+
+  /** Shared, cached full project list — used for `@project` autocomplete and id → title lookup. */
+  getProjectsCached(): Observable<Project[]> {
+    if (!this.projectsCache$) {
+      this.projectsCache$ = this.getProjects().pipe(shareReplay(1));
+    }
+    return this.projectsCache$;
   }
 
   getProjects(): Observable<Project[]> {

@@ -1,0 +1,19 @@
+<div class="tag-chips form-control d-flex flex-wrap align-items-center gap-1 position-relative" (click)="input.focus()">
+  @for (tag of tags(); track tag.id) {
+    <span class="badge rounded-pill d-inline-flex align-items-center gap-1"
+          [style.background-color]="tag.color" [style.color]="textColor(tag.color)">
+      {{ tag.name }}
+      <button type="button" class="tag-remove" [style.color]="textColor(tag.color)"
+              aria-label="Remove tag" (click)="$event.stopPropagation(); remove(tag)">&times;</button>
+    </span>
+  }
+  <input #input type="text" class="tag-chips-input flex-grow-1"
+         [value]="text()" (input)="onInput($event)" (keydown)="onKeydown($event)" (blur)="closeDropdown()"
+         placeholder="Add tag…" autocomplete="off">
+
+  @if (dropdownOpen()) {
+    <app-suggestion-list class="tag-chips-dropdown"
+      [items]="suggestions()" [activeIndex]="activeIndex()"
+      (pick)="selectSuggestion($event)" (activeChange)="activeIndex.set($event)" />
+  }
+</div>

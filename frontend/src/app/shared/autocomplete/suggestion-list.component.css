@@ -1,0 +1,15 @@
+:host {
+  display: block;
+}
+
+.suggestion-list {
+  max-height: 16rem;
+  overflow-y: auto;
+  margin: 0;
+  border-radius: 0.375rem;
+}
+
+.suggestion-item {
+  cursor: pointer;
+  padding: 0.35rem 0.75rem;
+}
