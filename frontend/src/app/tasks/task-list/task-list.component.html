@@ -30,22 +30,13 @@
   <cdk-virtual-scroll-viewport [itemSize]="rowHeight" class="task-viewport border rounded" minBufferPx="720" maxBufferPx="1440">
     <div *cdkVirtualFor="let task of ds; trackBy: trackByIndex" class="task-row d-flex align-items-start gap-2 px-2 py-2 border-bottom" [style.height.px]="rowHeight">
       @if (task) {
-        <div class="d-flex flex-column flex-shrink-0 task-checks pt-1">
+        <div class="flex-shrink-0 task-checks pt-1">
           <button type="button" class="btn btn-link p-0 lh-1 text-body" (click)="toggleTaskDone(task)" [attr.aria-pressed]="task.completed" title="Toggle done">
             <svg class="bi" width="18" height="18" role="img" aria-label="Done">
               @if (!task.completed) {
                 <use xlink:href="bootstrap-icons/bootstrap-icons.svg#square"></use>
               } @else {
                 <use xlink:href="bootstrap-icons/bootstrap-icons.svg#check-square-fill"></use>
-              }
-            </svg>
-          </button>
-          <button type="button" class="btn btn-link p-0 lh-1 text-body" (click)="toggleTaskToday(task)" [attr.aria-pressed]="task.for_today" title="Toggle today">
-            <svg class="bi" width="16" height="16" role="img" aria-label="Today">
-              @if (!task.for_today) {
-                <use xlink:href="bootstrap-icons/bootstrap-icons.svg#calendar2"></use>
-              } @else {
-                <use xlink:href="bootstrap-icons/bootstrap-icons.svg#calendar2-check-fill"></use>
               }
             </svg>
           </button>
@@ -69,6 +60,15 @@
         </div>
 
         <div class="btn-group btn-group-sm flex-shrink-0" role="group" aria-label="task actions">
+          <button type="button" class="btn" [ngClass]="task.for_today ? 'btn-warning' : 'btn-outline-secondary'" (click)="toggleTaskToday(task)" [attr.aria-pressed]="task.for_today" [disabled]="task.completed" title="Toggle today">
+            <svg class="bi" width="14" height="14" role="img" aria-label="Today">
+              @if (!task.for_today) {
+                <use xlink:href="bootstrap-icons/bootstrap-icons.svg#calendar2"></use>
+              } @else {
+                <use xlink:href="bootstrap-icons/bootstrap-icons.svg#calendar2-check-fill"></use>
+              }
+            </svg>
+          </button>
           <button type="button" class="btn btn-outline-secondary" routerLink="/tasks/{{ task.id }}" title="Edit">
             <svg class="bi" width="14" height="14" role="img" aria-label="Edit" fill="currentColor"><use xlink:href="bootstrap-icons/bootstrap-icons.svg#pencil"></use></svg>
           </button>
