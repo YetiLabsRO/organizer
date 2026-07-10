@@ -39,15 +39,32 @@ consolidated in-tree from the now-deprecated `organizer-ui` repository.
   - There is one server-rendered template view, `MainAppView` at `/` (`tasks/templates/tasks/`).
 - **Frontend** — Angular SPA in `frontend/` (NgModule-based). Talks to the API via
   `Authorization: Token <key>` (DRF TokenAuthentication). See `frontend/CLAUDE.md`.
+- **MCP server** (`mcp_server/`) — an OAuth-protected Model Context Protocol server (Streamable
+  HTTP) mounted at `/mcp`, letting LLM clients (Claude et al.) manage tasks/projects/tags/comments
+  as tools. Built on the `mcp` SDK; tools reuse the DRF serializers + `TaskFilterSet` via a
+  synchronous service layer (`mcp_server/service.py`), owner-scoped like the task API. Served under
+  **ASGI** (`organizer/asgi.py` routes `/mcp` + the protected-resource metadata to the MCP app,
+  everything else to Django). See the Authentication section for the OAuth flow.
 
 ## Authentication
 
-**DRF Token** — login via dj-rest-auth at `/rest-auth/login/`, configured in `organizer/settings.py`
-`REST_FRAMEWORK`. The token payload is customized by `UserTokenSerializer`
-(`tasks/api/serializers.py`) returning `{key, user, role}` (wired via
-`REST_AUTH["TOKEN_SERIALIZER"]`). This is what the Angular app uses.
+Two mechanisms:
 
-All API endpoints require authentication (`IsAuthenticated` default permission).
+1. **DRF Token** — login via dj-rest-auth at `/rest-auth/login/`, configured in
+   `organizer/settings.py` `REST_FRAMEWORK`. The token payload is customized by `UserTokenSerializer`
+   (`tasks/api/serializers.py`) returning `{key, user, role}` (wired via
+   `REST_AUTH["TOKEN_SERIALIZER"]`). This is what the Angular app uses.
+2. **OAuth 2.1 (MCP)** — `django-oauth-toolkit` is the authorization server for the `/mcp` endpoint:
+   authorization-code + PKCE, opaque `read`/`write` access tokens, mounted at `/o/`. Discovery is
+   served for MCP clients: RFC 8414 metadata at `/.well-known/oauth-authorization-server` and RFC
+   7591 dynamic client registration at `/o/register/` (`mcp_server/oauth_views.py`); RFC 9728
+   protected-resource metadata at `/.well-known/oauth-protected-resource` (by the MCP app). The MCP
+   server introspects tokens in-process against the toolkit and maps them to a Django user
+   (`mcp_server/auth.py`). The OAuth consent screen requires a logged-in Django user (`LOGIN_URL` →
+   admin login). `MCP_BASE_URL` must be the public URL clients connect to.
+
+All `/api/` endpoints require authentication (`IsAuthenticated` default permission); the `/mcp`
+endpoint requires a valid OAuth bearer token.
 
 ## Commands
 
@@ -56,7 +73,8 @@ Python is managed with **uv** (not pip directly). The lockfile `uv.lock` is the 
 
 ```bash
 uv sync                                   # install/refresh the .venv from uv.lock
-uv run python manage.py runserver         # dev server on :8000
+uv run python manage.py runserver         # WSGI dev server on :8000 (REST API + admin; NO /mcp)
+uv run uvicorn organizer.asgi:application  # ASGI server — required for the /mcp endpoint
 uv run python manage.py migrate           # apply migrations
 uv run python manage.py makemigrations    # after model changes
 uv run python manage.py test              # test suite
@@ -68,10 +86,15 @@ uv export --format requirements-txt --no-hashes --no-dev -o requirements.txt   #
 cd frontend && npm install && npm start   # ng serve on :4200
 ```
 
+The MCP endpoint (`/mcp`) needs an **ASGI** server (`uvicorn`); `runserver` (WSGI) still serves the
+REST API and admin. To connect an MCP client, add the server URL `<MCP_BASE_URL>/mcp` as a custom
+connector — it discovers the OAuth server, registers dynamically, and prompts you to log in and
+grant `read`/`write`. Tests: `manage.py test mcp_server`.
+
 Configuration is read from a `.env` file at the repo root via **python-decouple** (see
-`.env.example` for the keys: `SECRET_KEY`, `DEBUG`, `ALLOWED_HOSTS`, `DB_*`, `CORS_ALLOWED_ORIGINS`).
-Real OS environment variables take precedence over the file, so prod/CI inject them directly.
-Postgres is the only supported database (`psycopg` v3).
+`.env.example` for the keys: `SECRET_KEY`, `DEBUG`, `ALLOWED_HOSTS`, `DB_*`, `CORS_ALLOWED_ORIGINS`,
+`MCP_BASE_URL`, `OAUTH_*_TOKEN_TTL`). Real OS environment variables take precedence over the file,
+so prod/CI inject them directly. Postgres is the only supported database (`psycopg` v3).
 
 ## Worktrees
 

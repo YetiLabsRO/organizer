@@ -2,6 +2,7 @@ from django.contrib import admin
 from django.urls import include, path
 from rest_framework.routers import DefaultRouter
 
+from mcp_server.oauth_views import RegisterClientView, authorization_server_metadata
 from tasks.views import MainAppView, ProjectViewSet, TagViewSet, TaskCommentViewSet, TaskItemViewSet
 
 admin.autodiscover()
@@ -17,4 +18,12 @@ urlpatterns = [
     path('', MainAppView.as_view(), {}, "index"),
     path('api/', include(router.urls)),
     path('rest-auth/', include('dj_rest_auth.urls')),
+
+    # OAuth 2.1 authorization server for the MCP endpoint (django-oauth-toolkit),
+    # plus RFC 8414 metadata and RFC 7591 dynamic client registration (mcp_server/oauth_views.py).
+    # The /mcp endpoint and the RFC 9728 protected-resource metadata are served by the MCP
+    # ASGI app (organizer/asgi.py), not routed here.
+    path('.well-known/oauth-authorization-server', authorization_server_metadata, name='oauth_as_metadata'),
+    path('o/register/', RegisterClientView.as_view(), name='oauth_register'),
+    path('o/', include('oauth2_provider.urls', namespace='oauth2_provider')),
 ]
