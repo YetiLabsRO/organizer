@@ -216,10 +216,21 @@ CORS_ALLOWED_ORIGINS = config(
 
 
 # --- MCP server + OAuth 2.1 authorization server -----------------------------------------
+# python-decouple keeps everything after `=` as the value (including any trailing `# comment`),
+# so sanitize before use — this tolerates a stray inline comment or whitespace in a
+# hand-edited .env instead of crashing on import (e.g. `OAUTH_ACCESS_TOKEN_TTL=28800  # 8h`).
+def _strip_inline_comment(value):
+    return str(value).split("#", 1)[0].strip()
+
+
+def _env_int(key, default):
+    return config(key, default=default, cast=lambda v: int(_strip_inline_comment(v)))
+
+
 # Public, externally-reachable base URL of this deployment. It anchors the OAuth issuer and
 # the MCP resource identifier advertised in discovery metadata, so it MUST match the URL the
 # MCP client connects to (e.g. https://organizer.example.com). Defaults to the dev server.
-MCP_BASE_URL = config("MCP_BASE_URL", default="http://localhost:8000").rstrip("/")
+MCP_BASE_URL = _strip_inline_comment(config("MCP_BASE_URL", default="http://localhost:8000")).rstrip("/")
 
 # django-oauth-toolkit: authorization-code + PKCE, read/write scopes. Access tokens are opaque
 # and introspected in-process by the MCP TokenVerifier (mcp_server/auth.py) — no JWTs/JWKS.
@@ -230,8 +241,8 @@ OAUTH2_PROVIDER = {
     },
     "DEFAULT_SCOPES": ["read", "write"],
     "PKCE_REQUIRED": True,
-    "ACCESS_TOKEN_EXPIRE_SECONDS": config("OAUTH_ACCESS_TOKEN_TTL", default=60 * 60 * 8, cast=int),
-    "REFRESH_TOKEN_EXPIRE_SECONDS": config("OAUTH_REFRESH_TOKEN_TTL", default=60 * 60 * 24 * 30, cast=int),
+    "ACCESS_TOKEN_EXPIRE_SECONDS": _env_int("OAUTH_ACCESS_TOKEN_TTL", 60 * 60 * 8),
+    "REFRESH_TOKEN_EXPIRE_SECONDS": _env_int("OAUTH_REFRESH_TOKEN_TTL", 60 * 60 * 24 * 30),
     "ROTATE_REFRESH_TOKEN": True,
     # Allow http redirect URIs so loopback MCP clients (Claude Desktop / Claude Code / mcp-remote)
     # work in addition to https web connectors.
