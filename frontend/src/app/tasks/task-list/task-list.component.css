@@ -1,8 +1,18 @@
-/* Virtual-scroll viewport fills the space under the toolbar; it scrolls internally
-   so the page itself never grows with the task count. */
-.task-viewport {
-  height: calc(100vh - 320px);
+/* The host is a flex column spanning from just below the sticky navbar to the bottom
+   of the window; the offset only covers the navbar (~56px) + main's my-3 top+bottom
+   margins (2×16px), which are stable, so the toolbar can wrap/stack freely. */
+:host {
+  display: flex;
+  flex-direction: column;
+  height: calc(100dvh - 88px);
   min-height: 320px;
+}
+
+/* Virtual-scroll viewport fills the space under the toolbar down to the page bottom;
+   it scrolls internally so the page itself never grows with the task count. */
+.task-viewport {
+  flex: 1 1 auto;
+  min-height: 0; /* allow the flex child to shrink so it scrolls internally */
   overflow-x: hidden;
 }
 
@@ -103,10 +113,4 @@
 
 .tag-remove:hover {
   opacity: 1;
-}
-
-@media (max-width: 575.98px) {
-  .task-viewport {
-    height: calc(100vh - 340px);
-  }
 }
