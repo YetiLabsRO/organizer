@@ -17,6 +17,7 @@ from django.views import View
 from django.views.decorators.csrf import csrf_exempt
 from oauth2_provider.generators import generate_client_id, generate_client_secret
 from oauth2_provider.models import get_application_model
+from pydantic import AnyHttpUrl
 
 Application = get_application_model()
 
@@ -25,11 +26,19 @@ def _abs(viewname: str) -> str:
     return settings.MCP_BASE_URL + reverse(viewname)
 
 
+def _issuer() -> str:
+    # Must byte-for-byte match the MCP protected-resource metadata's `authorization_servers`
+    # entry, which the SDK derives from `AnyHttpUrl(MCP_BASE_URL)` (which appends a trailing
+    # slash for a host-only URL). RFC 8414 requires the issuer to match the identifier the
+    # client discovered, and strict clients (Claude) reject the flow otherwise.
+    return str(AnyHttpUrl(settings.MCP_BASE_URL))
+
+
 def authorization_server_metadata(request):
     """RFC 8414 metadata served at /.well-known/oauth-authorization-server."""
     return JsonResponse(
         {
-            "issuer": settings.MCP_BASE_URL,
+            "issuer": _issuer(),
             "authorization_endpoint": _abs("oauth2_provider:authorize"),
             "token_endpoint": _abs("oauth2_provider:token"),
             "introspection_endpoint": _abs("oauth2_provider:introspect"),

@@ -6,6 +6,7 @@ from django.conf import settings
 from django.test import TestCase
 from django.urls import reverse
 from oauth2_provider.models import get_application_model
+from pydantic import AnyHttpUrl
 
 Application = get_application_model()
 
@@ -15,7 +16,8 @@ class AuthorizationServerMetadataTests(TestCase):
         response = self.client.get(reverse("oauth_as_metadata"))
         self.assertEqual(response.status_code, 200)
         body = response.json()
-        self.assertEqual(body["issuer"], settings.MCP_BASE_URL)
+        # Issuer must match the normalized form the MCP protected-resource metadata advertises.
+        self.assertEqual(body["issuer"], str(AnyHttpUrl(settings.MCP_BASE_URL)))
         self.assertTrue(body["authorization_endpoint"].endswith("/o/authorize/"))
         self.assertTrue(body["token_endpoint"].endswith("/o/token/"))
         self.assertTrue(body["registration_endpoint"].endswith("/o/register/"))

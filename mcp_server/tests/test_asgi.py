@@ -43,4 +43,11 @@ class ASGIDiscoveryTests(SimpleTestCase):
     def test_non_mcp_path_is_routed_to_django(self):
         response = self.asgi.get("/.well-known/oauth-authorization-server")
         self.assertEqual(response.status_code, 200)
-        self.assertEqual(response.json()["issuer"], settings.MCP_BASE_URL)
+        self.assertEqual(response.json()["issuer"].rstrip("/"), settings.MCP_BASE_URL.rstrip("/"))
+
+    def test_as_issuer_matches_protected_resource_authorization_server(self):
+        # Regression: strict OAuth clients (Claude) reject discovery unless the AS metadata
+        # `issuer` byte-for-byte equals the protected-resource metadata's authorization server.
+        prm = self.asgi.get("/.well-known/oauth-protected-resource/mcp").json()
+        asm = self.asgi.get("/.well-known/oauth-authorization-server").json()
+        self.assertEqual(asm["issuer"], prm["authorization_servers"][0])
