@@ -13,6 +13,9 @@ dependencies = [
     "django-model-utils>=5.0",
     "psycopg[binary]>=3.2",
     "python-decouple>=3.8",
+    "mcp>=1.28.1",
+    "django-oauth-toolkit>=3.3.0",
+    "uvicorn>=0.49.0",
 ]
 
 [dependency-groups]

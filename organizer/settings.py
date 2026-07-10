@@ -61,6 +61,9 @@ INSTALLED_APPS = [
     'rest_framework.authtoken',
     'dj_rest_auth',
 
+    # OAuth 2.1 authorization server backing the MCP endpoint (see mcp_server/).
+    'oauth2_provider',
+
     'corsheaders',
 
     'tasks',
@@ -98,6 +101,9 @@ TEMPLATES = [
 ]
 
 WSGI_APPLICATION = 'organizer.wsgi.application'
+# ASGI entrypoint (uvicorn organizer.asgi:application). Required to serve the MCP
+# Streamable HTTP endpoint at /mcp; the plain REST API still runs fine under WSGI.
+ASGI_APPLICATION = 'organizer.asgi.application'
 
 # Password validation
 # https://docs.djangoproject.com/en/3.2/ref/settings/#auth-password-validators
@@ -181,7 +187,9 @@ RECAPTCHA_PRIVATE_KEY = ""
 GOOGLE_API_KEY = ""
 
 SITE_ID = 1
-LOGIN_URL = "/admin/"
+# The OAuth authorize view (django-oauth-toolkit) redirects unauthenticated users here
+# with a ?next= back to the consent screen; the admin login honours ?next=.
+LOGIN_URL = "/admin/login/"
 
 REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': [
@@ -205,5 +213,29 @@ CORS_ALLOWED_ORIGINS = config(
     default="http://localhost:4200",
     cast=Csv(),
 )
+
+
+# --- MCP server + OAuth 2.1 authorization server -----------------------------------------
+# Public, externally-reachable base URL of this deployment. It anchors the OAuth issuer and
+# the MCP resource identifier advertised in discovery metadata, so it MUST match the URL the
+# MCP client connects to (e.g. https://organizer.example.com). Defaults to the dev server.
+MCP_BASE_URL = config("MCP_BASE_URL", default="http://localhost:8000").rstrip("/")
+
+# django-oauth-toolkit: authorization-code + PKCE, read/write scopes. Access tokens are opaque
+# and introspected in-process by the MCP TokenVerifier (mcp_server/auth.py) — no JWTs/JWKS.
+OAUTH2_PROVIDER = {
+    "SCOPES": {
+        "read": "Read your tasks, projects, tags, and comments",
+        "write": "Create, update, and delete your tasks, projects, tags, and comments",
+    },
+    "DEFAULT_SCOPES": ["read", "write"],
+    "PKCE_REQUIRED": True,
+    "ACCESS_TOKEN_EXPIRE_SECONDS": config("OAUTH_ACCESS_TOKEN_TTL", default=60 * 60 * 8, cast=int),
+    "REFRESH_TOKEN_EXPIRE_SECONDS": config("OAUTH_REFRESH_TOKEN_TTL", default=60 * 60 * 24 * 30, cast=int),
+    "ROTATE_REFRESH_TOKEN": True,
+    # Allow http redirect URIs so loopback MCP clients (Claude Desktop / Claude Code / mcp-remote)
+    # work in addition to https web connectors.
+    "ALLOWED_REDIRECT_URI_SCHEMES": ["https", "http"],
+}
 
 
