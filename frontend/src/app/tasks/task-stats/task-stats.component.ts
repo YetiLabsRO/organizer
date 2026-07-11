@@ -249,7 +249,7 @@ export class TaskStatsComponent {
       data: {
         labels: rows.map((r) => r.period),
         datasets: [
-          { label: `Solved / ${s!.bucket}`, data: rows.map((r) => r.count), backgroundColor: '#0d6efd' },
+          { label: `Solved / ${s!.bucket}`, data: rows.map((r) => r.count), backgroundColor: '#5b8cff' },
         ],
       },
       options: {

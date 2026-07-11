@@ -1,3 +1,28 @@
+/* Page + card titles use the display face, matching the rest of the redesign. */
+:host h1 {
+  font-family: var(--org-font-heading);
+  font-weight: 700;
+}
+
+/* Dashboard cards adopt the redesign surface + shape. */
+.card {
+  background: var(--org-surface);
+  border: 1px solid var(--org-border);
+  border-radius: var(--org-radius);
+}
+
+.card-body h2 {
+  color: var(--org-text);
+  font-family: var(--org-font-heading);
+  font-weight: 600;
+}
+
+/* Big stat numbers in the display face. */
+.display-6 {
+  font-family: var(--org-font-heading);
+  font-weight: 700;
+}
+
 .chart-box {
   position: relative;
   height: 280px;

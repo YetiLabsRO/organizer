@@ -13,6 +13,11 @@ import { Chart, ChartConfiguration, registerables } from 'chart.js';
 // Register all Chart.js controllers/elements/scales once (bar, line, doughnut, filled areas…).
 Chart.register(...registerables);
 
+// Theme Chart.js for the dark redesign: legend/tick/label text and axis grid lines are drawn on
+// <canvas>, so they can't inherit CSS — set them from the design tokens once, globally.
+Chart.defaults.color = '#c3c5d9'; // --org-text-muted
+Chart.defaults.borderColor = 'rgba(67, 70, 86, 0.4)'; // --org-border, softened
+
 /**
  * Thin standalone wrapper that renders a Chart.js chart from a `ChartConfiguration` input.
  * Chart.js is used directly (no Angular wrapper) to avoid peer-dependency friction on Angular 21.
