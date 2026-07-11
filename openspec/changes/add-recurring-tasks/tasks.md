@@ -33,7 +33,8 @@
 - [ ] 4.2 Add owner-scoped `TaskTemplateViewSet` (CRUD; `get_queryset` filters by `request.user`;
       `perform_create` sets owner) with a `run` detail action that generates the due task now.
 - [ ] 4.3 Register `router.register(r'template', TaskTemplateViewSet)` in `organizer/urls.py`.
-- [ ] 4.4 Add read-only `template` field to `TaskSerializer`/`TaskListSerializer`.
+- [x] 4.4 Add read-only `template` field to `TaskSerializer`/`TaskListSerializer`. (Done in the
+      `enrich-task-ui` change, which also adds a read-only `template_title` for the UI badge.)
 - [ ] 4.5 API tests: owner scoping, CRUD, validation errors, `run` action, template field on tasks.
 
 ## 5. Frontend (Angular)
@@ -43,7 +44,8 @@
       `shared/tag-chips-input`.
 - [ ] 5.2 Add a route + main-nav entry for templates.
 - [ ] 5.3 Show a recurring indicator on task list/detail (from the task `template` field) linking to
-      the template.
+      the template. (The indicator itself is already implemented in the `enrich-task-ui` change —
+      finish this by pointing it at the templates route once 5.2 lands.)
 - [ ] 5.4 Frontend build passes (`npm run build`).
 
 ## 6. Ops & docs

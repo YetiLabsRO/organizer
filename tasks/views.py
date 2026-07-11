@@ -2,7 +2,7 @@
 from django.views.generic.base import TemplateView
 from rest_framework import permissions, viewsets
 from rest_framework.decorators import action
-from rest_framework.exceptions import ValidationError
+from rest_framework.exceptions import PermissionDenied, ValidationError
 from rest_framework.response import Response
 
 from tasks.api.serializers import (
@@ -78,3 +78,16 @@ class TaskCommentViewSet(viewsets.ModelViewSet):
     queryset = TaskComment.objects.all()
     serializer_class = TaskCommentSerializer
     permission_classes = (permissions.IsAuthenticated,)
+
+    def get_queryset(self):
+        # Scope to comments on the requesting user's own tasks — a personal organizer never exposes
+        # other users' comments.
+        return super().get_queryset().filter(task__owner=self.request.user)
+
+    def perform_create(self, serializer):
+        # The comment author is always the authenticated user; commenting is only allowed on a task
+        # the user owns.
+        task = serializer.validated_data.get("task")
+        if task is None or task.owner_id != self.request.user.id:
+            raise PermissionDenied("You can only comment on your own tasks.")
+        serializer.save(user=self.request.user)

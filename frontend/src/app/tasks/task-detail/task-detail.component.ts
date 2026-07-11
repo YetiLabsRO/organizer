@@ -1,5 +1,5 @@
 import { ChangeDetectionStrategy, Component, OnInit, signal } from '@angular/core';
-import { NgClass } from '@angular/common';
+import { DatePipe, NgClass } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { Modal } from 'bootstrap';
@@ -14,7 +14,10 @@ import { ProjectPickerComponent } from '../../shared/project-picker/project-pick
 
 @Component({
   selector: 'app-task-detail',
-  imports: [FormsModule, NgClass, RouterLink, MarkdownComponent, TagChipsInputComponent, ProjectPickerComponent],
+  imports: [
+    FormsModule, NgClass, DatePipe, RouterLink, MarkdownComponent, TagChipsInputComponent,
+    ProjectPickerComponent,
+  ],
   templateUrl: './task-detail.component.html',
   styleUrls: ['./task-detail.component.css'],
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -24,17 +27,29 @@ export class TaskDetailComponent implements OnInit {
   readonly saving = signal(false);
   readonly previewOnly = signal(false);
 
-  readonly statuses = [
-    { value: 'idea', label: 'Idea' },
-    { value: 'blocked', label: 'Blocked' },
-    { value: 'inprogress', label: 'In progress' },
-    { value: 'givenup', label: 'Given up' },
+  /** New-comment draft + in-flight flag for the comments section. */
+  readonly newComment = signal('');
+  readonly addingComment = signal(false);
+
+  /** Priority as a segmented control: traffic-light accents + a magnitude bar count. */
+  readonly priorityOptions: { value: number; label: string; bars: number; accent: 'low' | 'normal' | 'high' }[] = [
+    { value: 1, label: 'Low', bars: 1, accent: 'low' },
+    { value: 2, label: 'Normal', bars: 2, accent: 'normal' },
+    { value: 4, label: 'High', bars: 3, accent: 'high' },
   ];
-  readonly priorities = [
-    { value: 4, label: 'High' },
-    { value: 2, label: 'Normal' },
-    { value: 1, label: 'Low' },
+
+  /** Status DAG — the happy path (Idea → In progress → Done) and the states that branch off it. */
+  readonly flowMain = [
+    { value: 'idea', label: 'Idea', icon: 'lightbulb', accent: 'idea' },
+    { value: 'inprogress', label: 'In progress', icon: 'arrow-repeat', accent: 'progress' },
   ];
+  readonly flowBranch = [
+    { value: 'blocked', label: 'Blocked', icon: 'slash-circle', accent: 'blocked' },
+    { value: 'givenup', label: 'Given up', icon: 'flag', accent: 'givenup' },
+  ];
+
+  /** One-shot flag that fires the completion burst only on a user toggle (not on load). */
+  readonly celebrate = signal(false);
 
   private deleteModal?: Modal;
 
@@ -83,7 +98,51 @@ export class TaskDetailComponent implements OnInit {
     if (!task) return;
     task.completed = !task.completed;
     if (task.completed && task.for_today) task.for_today = false;
+    if (task.completed) this.celebrate.set(true);
+    this.task.set({ ...task });
     this.save();
+  }
+
+  /** Set the task's status from a DAG node (persisted on Save, like the other form fields). */
+  setStatus(value: string): void {
+    const task = this.task();
+    if (!task) return;
+    this.task.set({ ...task, status: value });
+  }
+
+  /** Set the task's priority from the segmented control. */
+  setPriority(value: number): void {
+    const task = this.task();
+    if (!task) return;
+    this.task.set({ ...task, priority: value });
+  }
+
+  /** Segment index (0–2) driving the sliding thumb; defaults to Normal's slot. */
+  priorityIndex(priority?: number): number {
+    const i = this.priorityOptions.findIndex((p) => p.value === priority);
+    return i < 0 ? 1 : i;
+  }
+
+  /** Traffic-light accent name for the current priority (low/normal/high). */
+  priorityAccent(priority?: number): string {
+    return this.priorityOptions.find((p) => p.value === priority)?.accent ?? 'normal';
+  }
+
+  addComment(): void {
+    const task = this.task();
+    const text = this.newComment().trim();
+    if (!task?.id || !text || this.addingComment()) return;
+    this.addingComment.set(true);
+    this.taskService.addComment(task.id, text).subscribe({
+      next: (comment) => {
+        // The list is server-ordered oldest→newest; append so the newest shows at the bottom.
+        task.comments = [...(task.comments ?? []), comment];
+        this.task.set({ ...task });
+        this.newComment.set('');
+        this.addingComment.set(false);
+      },
+      error: () => this.addingComment.set(false),
+    });
   }
 
   deleteTask(): void {

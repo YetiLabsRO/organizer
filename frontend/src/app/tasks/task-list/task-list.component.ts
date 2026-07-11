@@ -12,10 +12,14 @@ import { Task } from '../task';
 import { TagService } from '../../tags/tag.service';
 import { Tag } from '../../tags/tag';
 import { TagColorPipe } from '../../tags/tag-color.pipe';
+import { ProjectService } from '../../projects/project.service';
 import { TaskFilters } from '../task-filters';
 import { TaskDataSource, TaskPageLoader, TASK_PAGE_SIZE } from '../task-data-source';
 import { TaskQuickAddComponent, NewTaskRequest } from '../task-quick-add/task-quick-add.component';
 import { MarkdownComponent } from '../../shared/markdown/markdown.component';
+import {
+  DeadlineInfo, PriorityFlag, deadlineInfo, listStatusMeta, priorityFlag, priorityRowClass,
+} from '../task-meta';
 
 @Component({
   selector: 'app-task-list',
@@ -33,8 +37,9 @@ export class TaskListComponent implements OnInit, OnDestroy {
     this.breakpointObserver.observe('(max-width: 767.98px)').pipe(map((r) => r.matches)),
     { initialValue: false },
   );
-  /** Fixed row height (px). Compact on desktop; taller on mobile so the title can wrap to two lines. */
-  readonly rowHeight = computed(() => (this.isMobile() ? 84 : 56));
+  /** Fixed row height (px). Compact on desktop; taller on mobile so the title (up to two lines),
+   *  the priority/status/deadline meta line, and the tag dots all fit. */
+  readonly rowHeight = computed(() => (this.isMobile() ? 96 : 56));
 
   readonly dataSource = signal<TaskDataSource | null>(null);
   readonly tags = signal<Tag[]>([]);
@@ -42,6 +47,8 @@ export class TaskListComponent implements OnInit, OnDestroy {
   readonly filters = signal<{ [k: string]: boolean }>({ today: false, completed: false, todo: true });
   /** Tags chosen by clicking pills in the list — combined with AND (a task must have all of them). */
   readonly activeTags = signal<Tag[]>([]);
+  /** id → project title, so a row can show its project without a per-row fetch. */
+  private readonly projectNames = signal<Map<number, string>>(new Map());
 
   /** id → Tag lookup built from all loaded tags; drives reactive per-row tag rendering. */
   private readonly tagsById = computed(() => new Map(this.tags().map((t) => [t.id, t])));
@@ -56,11 +63,13 @@ export class TaskListComponent implements OnInit, OnDestroy {
 
   constructor(
     private taskService: TaskService,
-    private tagService: TagService
+    private tagService: TagService,
+    private projectService: ProjectService,
   ) { }
 
   ngOnInit(): void {
     this.getTags();
+    this.getProjects();
     this.subscription.add(
       this.search$.pipe(debounceTime(250), distinctUntilChanged()).subscribe(() => this.rebuild())
     );
@@ -152,6 +161,39 @@ export class TaskListComponent implements OnInit, OnDestroy {
   getTags(): void {
     this.tagService.getTags()
       .subscribe(tags => this.tags.set(tags));
+  }
+
+  getProjects(): void {
+    this.projectService.getProjectsCached().subscribe((projects) =>
+      this.projectNames.set(new Map(projects.map((p) => [p.id!, p.title]))),
+    );
+  }
+
+  // --- Per-row metadata for the richer list (priority / status / deadline / project) ---
+
+  /** Row accent class keyed off priority. */
+  rowClass(task: Task): string {
+    return priorityRowClass(task.priority);
+  }
+
+  /** Flag icon for high/low priority (null for neutral). */
+  priorityFlag(task: Task): PriorityFlag {
+    return priorityFlag(task.priority);
+  }
+
+  /** Status badge for the row (null for the default "Idea"). */
+  statusBadge(task: Task): { label: string; badgeClass: string } | null {
+    return listStatusMeta(task.status);
+  }
+
+  /** Deadline classification for overdue/soon emphasis (null when completed/undated). */
+  deadline(task: Task): DeadlineInfo {
+    return deadlineInfo(task);
+  }
+
+  /** Resolve a task's project id to its title (empty when none/unloaded). */
+  projectName(task: Task): string {
+    return task.project != null ? (this.projectNames().get(task.project) ?? '') : '';
   }
 
   onQuickAdd(request: NewTaskRequest): void {
