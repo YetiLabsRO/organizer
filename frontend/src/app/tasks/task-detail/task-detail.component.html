@@ -18,27 +18,90 @@
     </button>
   </div>
 
+  @if (t.parent_task || t.template) {
+    <div class="d-flex flex-wrap align-items-center gap-2 mb-3">
+      @if (t.parent_task) {
+        <a class="badge text-bg-light border text-body text-decoration-none d-inline-flex align-items-center gap-1" routerLink="/tasks/{{ t.parent_task }}">
+          <svg class="bi" width="12" height="12" role="img" aria-label="Parent task"><use xlink:href="bootstrap-icons/bootstrap-icons.svg#diagram-2"></use></svg>
+          Parent: {{ t.parent_task_title || 'task #' + t.parent_task }}
+        </a>
+      }
+      @if (t.template) {
+        <span class="badge text-bg-info-subtle text-info-emphasis border d-inline-flex align-items-center gap-1" title="Generated from a recurring template">
+          <svg class="bi" width="12" height="12" role="img" aria-label="Recurring"><use xlink:href="bootstrap-icons/bootstrap-icons.svg#arrow-repeat"></use></svg>
+          Recurring: {{ t.template_title || 'from template' }}
+        </span>
+      }
+    </div>
+  }
+
   <div class="row g-3">
     <div class="col-12">
       <label class="form-label" for="td-title">Title</label>
       <input id="td-title" class="form-control form-control-lg" [(ngModel)]="t.title" placeholder="Task title">
     </div>
 
-    <div class="col-6 col-md-3">
-      <label class="form-label" for="td-status">Status</label>
-      <select id="td-status" class="form-select" [(ngModel)]="t.status">
-        @for (s of statuses; track s.value) {
-          <option [ngValue]="s.value">{{ s.label }}</option>
-        }
-      </select>
+    <div class="col-12">
+      <label class="form-label d-block mb-2">Status</label>
+      <div class="status-dag-scroll">
+        <div class="status-dag" [class.is-completed]="t.completed">
+          <button type="button" class="dag-node dag-idea" [class.active]="t.status === 'idea'" data-accent="idea"
+                  (click)="setStatus('idea')" [attr.aria-pressed]="t.status === 'idea'">
+            <svg class="bi" width="15" height="15" role="img" aria-hidden="true"><use xlink:href="bootstrap-icons/bootstrap-icons.svg#lightbulb"></use></svg>
+            <span>Idea</span>
+          </button>
+
+          <span class="dag-edge" aria-hidden="true"></span>
+
+          <div class="dag-mid">
+            <button type="button" class="dag-node dag-inprogress" [class.active]="t.status === 'inprogress'" data-accent="progress"
+                    (click)="setStatus('inprogress')" [attr.aria-pressed]="t.status === 'inprogress'">
+              <svg class="bi" width="15" height="15" role="img" aria-hidden="true"><use xlink:href="bootstrap-icons/bootstrap-icons.svg#arrow-repeat"></use></svg>
+              <span>In progress</span>
+            </button>
+
+            <div class="dag-branches">
+              <span class="dag-fork" aria-hidden="true"></span>
+              <div class="dag-branch-row">
+                @for (b of flowBranch; track b.value) {
+                  <button type="button" class="dag-node dag-branch" [class.active]="t.status === b.value" [attr.data-accent]="b.accent"
+                          (click)="setStatus(b.value)" [attr.aria-pressed]="t.status === b.value">
+                    <svg class="bi" width="13" height="13" role="img" aria-hidden="true"><use [attr.xlink:href]="'bootstrap-icons/bootstrap-icons.svg#' + b.icon"></use></svg>
+                    <span>{{ b.label }}</span>
+                  </button>
+                }
+              </div>
+            </div>
+          </div>
+
+          <span class="dag-edge" aria-hidden="true"></span>
+
+          <button type="button" class="dag-done" [class.checked]="t.completed" [class.celebrate]="celebrate()"
+                  (click)="toggleCompleted()" [attr.aria-pressed]="t.completed" title="Toggle done">
+            <span class="dag-check" aria-hidden="true">
+              <svg viewBox="0 0 24 24" width="20" height="20" fill="none">
+                <path class="dag-check-path" d="M4.5 12.5l4.2 4.2 10.8-11" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
+            </span>
+            <span class="dag-done-label">{{ t.completed ? 'Done' : 'Mark done' }}</span>
+            <span class="dag-burst" aria-hidden="true" (animationend)="celebrate.set(false)"></span>
+          </button>
+        </div>
+      </div>
     </div>
-    <div class="col-6 col-md-3">
-      <label class="form-label" for="td-priority">Priority</label>
-      <select id="td-priority" class="form-select" [(ngModel)]="t.priority">
-        @for (p of priorities; track p.value) {
-          <option [ngValue]="p.value">{{ p.label }}</option>
+
+    <div class="col-12 col-md-6">
+      <label class="form-label d-block mb-2">Priority</label>
+      <div class="seg" role="group" aria-label="Priority" [attr.data-accent]="priorityAccent(t.priority)" [style.--seg-i]="priorityIndex(t.priority)">
+        <span class="seg-thumb" aria-hidden="true"></span>
+        @for (p of priorityOptions; track p.value) {
+          <button type="button" class="seg-opt" [class.active]="t.priority === p.value" [attr.data-accent]="p.accent"
+                  (click)="setPriority(p.value)" [attr.aria-pressed]="t.priority === p.value">
+            <span class="seg-bars" aria-hidden="true"><span class="bar"></span><span class="bar"></span><span class="bar"></span></span>
+            <span>{{ p.label }}</span>
+          </button>
         }
-      </select>
+      </div>
     </div>
     <div class="col-6 col-md-3">
       <label class="form-label" for="td-estimate">Estimated (min)</label>
@@ -90,6 +153,37 @@
             }
           </div>
         </div>
+      </div>
+    </div>
+
+    <div class="col-12">
+      <label class="form-label">Comments @if (t.comments?.length) { <span class="text-muted">({{ t.comments?.length }})</span> }</label>
+      @if (t.comments?.length) {
+        <ul class="list-unstyled mb-2">
+          @for (c of t.comments ?? []; track c.id) {
+            <li class="comment-item ps-2 mb-2">
+              <div class="small text-muted mb-1">{{ c.user_username || 'You' }} · {{ c.timestamp | date:'medium' }}</div>
+              <app-markdown [value]="c.description" [inline]="true" />
+            </li>
+          }
+        </ul>
+      } @else {
+        <p class="text-muted small mb-2">No comments yet.</p>
+      }
+      <div class="input-group">
+        <textarea class="form-control" rows="2" placeholder="Add a comment…" [ngModel]="newComment()" (ngModelChange)="newComment.set($event)"></textarea>
+        <button type="button" class="btn btn-outline-primary" (click)="addComment()" [disabled]="addingComment() || !newComment().trim()">
+          {{ addingComment() ? 'Adding…' : 'Add' }}
+        </button>
+      </div>
+    </div>
+
+    <div class="col-12">
+      <hr class="my-1">
+      <div class="d-flex flex-wrap gap-3 small text-muted">
+        @if (t.created_date) { <span>Created {{ t.created_date | date:'medium' }}</span> }
+        @if (t.changed_date) { <span>Updated {{ t.changed_date | date:'medium' }}</span> }
+        @if (t.completed_date) { <span>Completed {{ t.completed_date | date:'medium' }}</span> }
       </div>
     </div>
   </div>

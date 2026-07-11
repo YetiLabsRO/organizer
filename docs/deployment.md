@@ -30,7 +30,13 @@ environment for the deploy jobs):
 ## Server expectations
 
 - Backend lives at `DEPLOY_PATH` as a git checkout with a `.venv/` and a `.env` (holding `DB_*`,
-  `SECRET_KEY`, `ALLOWED_HOSTS`, …). The DB-backup step sources that `.env` to run `pg_dump`.
+  `SECRET_KEY`, `ALLOWED_HOSTS`, `MCP_BASE_URL`, …). The DB-backup step sources that `.env` to run
+  `pg_dump`.
+- The service the restart command controls runs the app under **ASGI** (`uvicorn
+  organizer.asgi:application`) — required so the `/mcp` MCP endpoint works; the REST API and admin
+  run fine under ASGI too. See [Server-side setup: MCP + OAuth 2.1](../README.md#server-side-setup-mcp--oauth-21)
+  for the systemd/supervisor unit, the HTTPS reverse-proxy rules (stream `/mcp`), and the required
+  `MCP_BASE_URL`. `oauth2_provider` tables are created by the deploy's `migrate` step.
 - The deploy user can run the configured restart command (and `sudo` for the frontend web-root copy).
 - Database dumps are written to `/var/backups/organizer/` and pruned after 7 days.
 

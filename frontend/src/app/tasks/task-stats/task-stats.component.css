@@ -7,6 +7,12 @@
   height: 360px;
 }
 
+/* Keep segmented-control labels (e.g. "Per day") on a single line so a squeezed
+   button group shrinks horizontally instead of wrapping and growing taller. */
+.btn-group .btn {
+  white-space: nowrap;
+}
+
 .tag-pill {
   cursor: pointer;
   font-size: 0.8rem;

@@ -34,7 +34,8 @@
 - [x] 4.2 Add owner-scoped `TaskTemplateViewSet` (CRUD; `get_queryset` filters by `request.user`;
       `perform_create` sets owner) with a `run` detail action that generates the due task now.
 - [x] 4.3 Register `router.register(r'template', TaskTemplateViewSet)` in `organizer/urls.py`.
-- [x] 4.4 Add read-only `template` field to `TaskSerializer`/`TaskListSerializer`.
+- [x] 4.4 Add read-only `template` field to `TaskSerializer`/`TaskListSerializer`. (Landed via the
+      `enrich-task-ui` change, which also adds a read-only `template_title` for the UI badge.)
 - [x] 4.5 API tests (`tasks/test_templates_api.py`): owner scoping, CRUD, validation errors, `run`
       action, template field on tasks, management command.
 
@@ -44,7 +45,9 @@
       recurrence editor, lead time, skip-if-open toggle; reuses the ngx-chips tag input. (Project
       selection uses a native `<select>` rather than `shared/project-picker` — see PR notes.)
 - [x] 5.2 Add routes + a "Recurring" main-nav entry for templates.
-- [x] 5.3 Show a recurring indicator (↻) on task-list rows, linking to the originating template.
+- [x] 5.3 Show a recurring indicator on task-list rows linking to the originating template. (The
+      indicator markup landed in `enrich-task-ui`; this branch repoints it at `/templates/:id/edit`
+      now that the route exists.)
 - [x] 5.4 Frontend production build passes (`npm run build`).
 
 ## 6. Ops & docs

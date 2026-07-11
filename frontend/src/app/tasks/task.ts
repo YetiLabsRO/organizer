@@ -1,5 +1,14 @@
 import {Tag} from '../tags/tag';
 
+export interface TaskComment {
+  id?: number;
+  task?: number;
+  description: string;
+  user?: number;
+  user_username?: string;
+  timestamp?: Date;
+}
+
 export interface Task {
   id?: number;
   title: string;
@@ -9,6 +18,7 @@ export interface Task {
   completed_date?: Date;
   estimated_time?: number;
   parent_task?: number;
+  parent_task_title?: string;
   order?: number;
   created_date?: Date;
   changed_date?: Date;
@@ -20,5 +30,8 @@ export interface Task {
   tags: number[]; // for writing references
   project?: number; // todo: Update to Project
   for_today?: boolean;
-  template?: number | null; // the recurring template that generated this task (read-only)
+  // The recurring template that generated this task (read-only; see add-recurring-tasks).
+  template?: number;
+  template_title?: string;
+  comments?: TaskComment[];
 }

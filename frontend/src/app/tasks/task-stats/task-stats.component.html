@@ -5,13 +5,13 @@
 
 <!-- Filter bar (writes to the URL; shareable/bookmarkable) -->
 <div class="d-flex flex-column flex-lg-row gap-2 mb-3">
-  <div class="btn-group btn-group-sm" role="group" aria-label="completion filter">
+  <div class="btn-group btn-group-sm flex-shrink-0" role="group" aria-label="completion filter">
     <button type="button" class="btn" [class]="completedState() === 'all' ? 'btn-primary' : 'btn-outline-primary'" (click)="setCompleted('all')">All</button>
     <button type="button" class="btn" [class]="completedState() === 'todo' ? 'btn-primary' : 'btn-outline-primary'" (click)="setCompleted('todo')">Todo</button>
     <button type="button" class="btn" [class]="completedState() === 'done' ? 'btn-primary' : 'btn-outline-primary'" (click)="setCompleted('done')">Completed</button>
   </div>
 
-  <div class="btn-group btn-group-sm" role="group" aria-label="time bucket">
+  <div class="btn-group btn-group-sm flex-shrink-0" role="group" aria-label="time bucket">
     <button type="button" class="btn" [class]="bucket() === 'day' ? 'btn-primary' : 'btn-outline-primary'" (click)="setBucket('day')">Per day</button>
     <button type="button" class="btn" [class]="bucket() === 'week' ? 'btn-primary' : 'btn-outline-primary'" (click)="setBucket('week')">Per week</button>
   </div>
@@ -26,7 +26,7 @@
 
 <!-- Period: scopes the dashboard by completion date -->
 <div class="d-flex flex-column flex-lg-row gap-2 mb-3 align-items-lg-center">
-  <div class="btn-group btn-group-sm" role="group" aria-label="period">
+  <div class="btn-group btn-group-sm flex-shrink-0" role="group" aria-label="period">
     <button type="button" class="btn" [class]="activePeriod() === 'today' ? 'btn-primary' : 'btn-outline-primary'" (click)="setPeriod('today')">Today</button>
     <button type="button" class="btn" [class]="activePeriod() === 'week' ? 'btn-primary' : 'btn-outline-primary'" (click)="setPeriod('week')">Last week</button>
     <button type="button" class="btn" [class]="activePeriod() === 'month' ? 'btn-primary' : 'btn-outline-primary'" (click)="setPeriod('month')">Last month</button>
@@ -49,7 +49,7 @@
     @for (tag of allTags(); track tag.id) {
       <button type="button" class="badge rounded-pill tag-pill border-0"
               [style.background-color]="isTagActive(tag) ? tag.color : 'transparent'"
-              [style.color]="isTagActive(tag) ? (tag | tagColor) : null"
+              [style.color]="isTagActive(tag) ? (tag | tagColor) : tag.color"
               [style.box-shadow]="'inset 0 0 0 1px ' + tag.color"
               (click)="toggleTag(tag)" [attr.aria-pressed]="isTagActive(tag)"
               title="Toggle #{{ tag.name }} filter">#{{ tag.name }}</button>
