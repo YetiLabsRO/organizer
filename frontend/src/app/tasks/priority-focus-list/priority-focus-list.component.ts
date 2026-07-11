@@ -9,7 +9,7 @@ import { Tag } from '../../tags/tag';
 import { TagColorPipe } from '../../tags/tag-color.pipe';
 import { ProjectService } from '../../projects/project.service';
 import { TaskFilters } from '../task-filters';
-import { TaskQuickAddComponent, NewTaskRequest } from '../task-quick-add/task-quick-add.component';
+import { TaskCreateDrawerComponent } from '../task-create-drawer/task-create-drawer.component';
 import {
   DeadlineInfo, PriorityFlag, deadlineInfo, listStatusMeta, priorityFlag,
   PRIORITY_HIGH, PRIORITY_LOW,
@@ -42,7 +42,7 @@ const FETCH_LIMIT = 500;
  */
 @Component({
   selector: 'app-priority-focus-list',
-  imports: [RouterLink, TagColorPipe, TaskQuickAddComponent],
+  imports: [RouterLink, TagColorPipe, TaskCreateDrawerComponent],
   templateUrl: './priority-focus-list.component.html',
   styleUrls: ['./priority-focus-list.component.css'],
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -63,7 +63,7 @@ export class PriorityFocusListComponent implements OnInit {
   private readonly tagsById = computed(() => new Map(this.tags().map((t) => [t.id, t])));
   private readonly projectNames = signal<Map<number, string>>(new Map());
 
-  readonly showQuickAdd = signal(false);
+  readonly drawerOpen = signal(false);
   readonly collapsed = signal<Record<BandId, boolean>>({
     urgent: false, high: false, normal: true, low: true,
   });
@@ -201,18 +201,12 @@ export class PriorityFocusListComponent implements OnInit {
     }
   }
 
-  onQuickAdd(request: NewTaskRequest): void {
-    const task: Task = {
-      title: request.title,
-      for_today: this.viewMode() === 'today',
-      project: request.project,
-      tags: [],
-      _tags: request.tags,
-    };
-    this.taskService.addTask(task).subscribe(() => this.load());
+  openCreate(): void {
+    this.drawerOpen.set(true);
   }
 
-  toggleQuickAdd(): void {
-    this.showQuickAdd.update((open) => !open);
+  /** A task was created in the drawer — refresh the current view so it appears in its band. */
+  onCreated(): void {
+    this.load();
   }
 }

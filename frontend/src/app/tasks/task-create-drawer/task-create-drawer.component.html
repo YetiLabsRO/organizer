@@ -1,0 +1,73 @@
+<div class="drawer-scrim" [class.show]="open()" (click)="close()" aria-hidden="true"></div>
+
+<aside class="drawer" [class.open]="open()" role="dialog" aria-modal="true" aria-label="Create new task">
+  <header class="drawer-head">
+    <h2 class="drawer-title">Create New Task</h2>
+    <button type="button" class="drawer-close" (click)="close()" aria-label="Close">
+      <svg class="bi" width="18" height="18" role="img" aria-hidden="true"><use xlink:href="bootstrap-icons/bootstrap-icons.svg#x-lg"></use></svg>
+    </button>
+  </header>
+
+  <div class="drawer-body">
+    <div class="field">
+      <label class="field-label" for="ct-title">Task Title</label>
+      <input id="ct-title" class="form-control" [(ngModel)]="draft.title"
+             placeholder="e.g. Refactor auth module" autocomplete="off" />
+    </div>
+
+    <div class="field">
+      <span class="field-label">Priority</span>
+      <div class="prio-seg" role="group" aria-label="Priority">
+        @for (p of priorityOptions; track p.value) {
+          <button type="button" class="prio-opt" [class.active]="draft.priority === p.value"
+                  [attr.data-accent]="p.accent" (click)="setPriority(p.value)"
+                  [attr.aria-pressed]="draft.priority === p.value">{{ p.label }}</button>
+        }
+      </div>
+    </div>
+
+    <div class="field-grid">
+      <div class="field">
+        <label class="field-label" for="ct-due">Due Date</label>
+        <input id="ct-due" type="datetime-local" class="form-control"
+               [value]="dateForInput(draft.end_date)" (change)="onDeadlineChange($event)" />
+      </div>
+      <div class="field">
+        <label class="field-label" for="ct-estimate">Estimate <span class="field-hint">min</span></label>
+        <input id="ct-estimate" type="number" min="0" class="form-control"
+               [(ngModel)]="draft.estimated_time" placeholder="—" />
+      </div>
+    </div>
+
+    <div class="field">
+      <label class="field-label">Project</label>
+      <app-project-picker [(projectId)]="draft.project" />
+    </div>
+
+    <div class="field">
+      <label class="field-label">Tags</label>
+      <app-tag-chips-input [(tags)]="draft.tags" />
+    </div>
+
+    <div class="field">
+      <label class="field-label" for="ct-desc">Description <span class="field-hint">Markdown supported</span></label>
+      <textarea id="ct-desc" class="form-control" rows="5" [(ngModel)]="draft.description"
+                placeholder="Describe the task objectives…"></textarea>
+    </div>
+
+    <div class="switch-row">
+      <div class="form-check form-switch">
+        <input id="ct-today" class="form-check-input" type="checkbox" [(ngModel)]="draft.for_today" />
+        <label class="form-check-label" for="ct-today">Focus today</label>
+      </div>
+    </div>
+  </div>
+
+  <footer class="drawer-foot">
+    <button type="button" class="btn-cancel" (click)="close()">Cancel</button>
+    <button type="button" class="btn-create" (click)="submit()"
+            [disabled]="!draft.title.trim() || saving()">
+      {{ saving() ? 'Creating…' : 'Create Task' }}
+    </button>
+  </footer>
+</aside>

@@ -31,11 +31,6 @@
     </div>
   </section>
 
-  <!-- Quick add (revealed by the FAB) -->
-  @if (showQuickAdd()) {
-    <app-task-quick-add class="focus-quick-add" (create)="onQuickAdd($event)" />
-  }
-
   <!-- Priority band cards -->
   <section class="bands">
     @for (band of bandDefs; track band.id) {
@@ -109,10 +104,11 @@
   }
 </div>
 
-<!-- Floating quick-add toggle -->
-<button type="button" class="focus-fab" (click)="toggleQuickAdd()"
-        [class.active]="showQuickAdd()" [attr.aria-pressed]="showQuickAdd()" aria-label="Quick add task">
+<!-- Floating action button: opens the Create Task drawer -->
+<button type="button" class="focus-fab" (click)="openCreate()" aria-label="Create task">
   <svg class="bi" width="22" height="22" role="img" aria-hidden="true">
     <use xlink:href="bootstrap-icons/bootstrap-icons.svg#plus"></use>
   </svg>
 </button>
+
+<app-task-create-drawer [(open)]="drawerOpen" (created)="onCreated()" />

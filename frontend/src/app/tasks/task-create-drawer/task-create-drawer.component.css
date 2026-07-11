@@ -1,0 +1,220 @@
+:host {
+  display: contents;
+}
+
+/* Scrim */
+.drawer-scrim {
+  position: fixed;
+  inset: 0;
+  z-index: 1050;
+  background: rgba(0, 0, 0, 0.55);
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity 0.2s ease, visibility 0.2s ease;
+}
+
+.drawer-scrim.show {
+  opacity: 1;
+  visibility: visible;
+}
+
+/* Panel */
+.drawer {
+  position: fixed;
+  top: 0;
+  right: 0;
+  z-index: 1055;
+  width: min(460px, 100vw);
+  height: 100dvh;
+  display: flex;
+  flex-direction: column;
+  background: var(--org-surface);
+  border-left: 1px solid var(--org-border);
+  box-shadow: -12px 0 40px rgba(0, 0, 0, 0.5);
+  transform: translateX(100%);
+  transition: transform 0.24s ease;
+}
+
+.drawer.open {
+  transform: translateX(0);
+}
+
+/* Header */
+.drawer-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 20px 24px;
+  border-bottom: 1px solid var(--org-border-subtle);
+  flex-shrink: 0;
+}
+
+.drawer-title {
+  margin: 0;
+  font-family: var(--org-font-heading);
+  font-weight: 700;
+  font-size: 1.375rem;
+  color: var(--org-text);
+}
+
+.drawer-close {
+  display: grid;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  border: 0;
+  border-radius: var(--org-radius-sm);
+  background: transparent;
+  color: var(--org-text-dim);
+  cursor: pointer;
+}
+
+.drawer-close:hover {
+  background: var(--org-surface-2);
+  color: var(--org-text);
+}
+
+/* Body */
+.drawer-body {
+  flex: 1 1 auto;
+  overflow-y: auto;
+  padding: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.field-grid {
+  display: grid;
+  grid-template-columns: 1fr 140px;
+  gap: 16px;
+}
+
+.field-label {
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: var(--org-text-muted);
+}
+
+.field-hint {
+  font-weight: 400;
+  color: var(--org-text-dim);
+}
+
+/* Inputs lean on Bootstrap's dark form-control; just tune the surface to the drawer. */
+.drawer .form-control {
+  background-color: var(--org-bg);
+  border-color: var(--org-border);
+  color: var(--org-text);
+}
+
+.drawer .form-control:focus {
+  background-color: var(--org-bg);
+  border-color: var(--org-accent);
+  box-shadow: 0 0 0 0.2rem rgba(183, 196, 255, 0.15);
+  color: var(--org-text);
+}
+
+/* Priority segmented control */
+.prio-seg {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 6px;
+}
+
+.prio-opt {
+  padding: 8px 0;
+  border: 1px solid var(--org-border);
+  border-radius: var(--org-radius-sm);
+  background: var(--org-bg);
+  color: var(--org-text-muted);
+  font-size: 0.875rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background-color 0.12s ease, color 0.12s ease, border-color 0.12s ease;
+}
+
+.prio-opt:hover {
+  color: var(--org-text);
+}
+
+.prio-opt.active {
+  background: var(--org-primary);
+  border-color: var(--org-primary);
+  color: #fff;
+}
+
+.prio-opt.active[data-accent="high"] {
+  background: var(--org-danger);
+  border-color: var(--org-danger);
+  color: var(--org-danger-ink);
+}
+
+.prio-opt.active[data-accent="low"] {
+  background: var(--org-surface-2);
+  border-color: var(--org-border);
+  color: var(--org-text);
+}
+
+/* Focus-today switch */
+.switch-row .form-check-label {
+  color: var(--org-text-muted);
+}
+
+/* Footer */
+.drawer-foot {
+  display: flex;
+  gap: 12px;
+  padding: 16px 24px;
+  border-top: 1px solid var(--org-border-subtle);
+  flex-shrink: 0;
+}
+
+.btn-cancel,
+.btn-create {
+  flex: 1 1 0;
+  padding: 10px 16px;
+  border-radius: var(--org-radius-sm);
+  font-weight: 600;
+  font-size: 0.9375rem;
+  cursor: pointer;
+  transition: background-color 0.12s ease, opacity 0.12s ease;
+}
+
+.btn-cancel {
+  border: 1px solid var(--org-border);
+  background: transparent;
+  color: var(--org-text-muted);
+}
+
+.btn-cancel:hover {
+  background: var(--org-surface-2);
+  color: var(--org-text);
+}
+
+.btn-create {
+  border: 1px solid var(--org-primary);
+  background: var(--org-primary);
+  color: #fff;
+}
+
+.btn-create:hover:not(:disabled) {
+  background: #1a63ff;
+}
+
+.btn-create:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+@media (max-width: 575.98px) {
+  .field-grid {
+    grid-template-columns: 1fr;
+  }
+}
