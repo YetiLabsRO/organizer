@@ -1,11 +1,18 @@
-/* The host is a flex column spanning from just below the sticky navbar to the bottom
-   of the window; the offset only covers the navbar (~56px) + main's my-3 top+bottom
-   margins (2×16px), which are stable, so the toolbar can wrap/stack freely. */
+/* The host is a flex column spanning the content area down to the bottom of the
+   window; the offset covers the shell's content padding (24px top + bottom). The
+   sidebar is to the left, so there is no top chrome to subtract on desktop. */
 :host {
   display: flex;
   flex-direction: column;
-  height: calc(100dvh - 88px);
+  height: calc(100dvh - 48px);
   min-height: 320px;
+}
+
+/* Mobile: subtract the sticky top bar (52px) on top of the 16px content padding. */
+@media (max-width: 991.98px) {
+  :host {
+    height: calc(100dvh - 84px);
+  }
 }
 
 /* Virtual-scroll viewport fills the space under the toolbar down to the page bottom;

@@ -1,34 +1,61 @@
-<nav class="navbar navbar-expand-lg navbar-dark bg-dark sticky-top">
-  <div class="container">
-    <a class="navbar-brand d-flex align-items-center gap-2" routerLink="/tasks">
-      <svg class="bi" width="28" height="24" role="img" aria-label="Organizer"><use xlink:href="bootstrap-icons/bootstrap-icons.svg#check2-square"></use></svg>
-      <span>Organizer</span>
+<div class="app-shell" [class.menu-open]="menuOpen()">
+  <!-- Mobile top bar: brand + hamburger (hidden on desktop, where the sidebar is always shown). -->
+  <header class="topbar d-lg-none">
+    <button type="button" class="topbar-toggle" (click)="toggleMenu()"
+            [attr.aria-expanded]="menuOpen()" aria-label="Toggle navigation">
+      <svg class="bi" width="20" height="20" role="img" aria-hidden="true"><use xlink:href="bootstrap-icons/bootstrap-icons.svg#list"></use></svg>
+    </button>
+    <a class="topbar-brand" routerLink="/tasks/focus">Organizer</a>
+  </header>
+
+  <!-- Scrim behind the off-canvas sidebar on mobile. -->
+  <div class="scrim" (click)="toggleMenu()" aria-hidden="true"></div>
+
+  <aside class="sidebar">
+    <a class="sidebar-brand" routerLink="/tasks/focus">
+      <span class="brand-title">Organizer</span>
+      <span class="brand-sub">MISSION CONTROL</span>
     </a>
 
-    <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#mainNav"
-            aria-controls="mainNav" aria-expanded="false" aria-label="Toggle navigation">
-      <span class="navbar-toggler-icon"></span>
-    </button>
+    <nav class="sidebar-nav" aria-label="Primary">
+      <a class="nav-link" routerLink="/tasks/focus" routerLinkActive="active">
+        <svg class="bi" width="17" height="17" role="img" aria-hidden="true"><use xlink:href="bootstrap-icons/bootstrap-icons.svg#bullseye"></use></svg>
+        <span>Focus</span>
+      </a>
+      <a class="nav-link" routerLink="/tasks" routerLinkActive="active" [routerLinkActiveOptions]="{ exact: true }">
+        <svg class="bi" width="17" height="17" role="img" aria-hidden="true"><use xlink:href="bootstrap-icons/bootstrap-icons.svg#list-check"></use></svg>
+        <span>Tasks</span>
+      </a>
+      <a class="nav-link" routerLink="/tasks/stats" routerLinkActive="active">
+        <svg class="bi" width="17" height="17" role="img" aria-hidden="true"><use xlink:href="bootstrap-icons/bootstrap-icons.svg#bar-chart"></use></svg>
+        <span>Stats</span>
+      </a>
+      <a class="nav-link" routerLink="/tags" routerLinkActive="active">
+        <svg class="bi" width="17" height="17" role="img" aria-hidden="true"><use xlink:href="bootstrap-icons/bootstrap-icons.svg#tags"></use></svg>
+        <span>Tags</span>
+      </a>
+      <a class="nav-link" routerLink="/projects" routerLinkActive="active">
+        <svg class="bi" width="17" height="17" role="img" aria-hidden="true"><use xlink:href="bootstrap-icons/bootstrap-icons.svg#folder"></use></svg>
+        <span>Projects</span>
+      </a>
+    </nav>
 
-    <div class="collapse navbar-collapse" id="mainNav">
-      <ul class="navbar-nav me-auto mb-2 mb-lg-0">
-        <li class="nav-item"><a routerLink="/tasks" class="nav-link" routerLinkActive="active" [routerLinkActiveOptions]="{ exact: true }">Tasks</a></li>
-        <li class="nav-item"><a routerLink="/tasks/stats" class="nav-link" routerLinkActive="active">Stats</a></li>
-        <li class="nav-item"><a routerLink="/tags" class="nav-link" routerLinkActive="active">Tags</a></li>
-        <li class="nav-item"><a routerLink="/projects" class="nav-link" routerLinkActive="active">Projects</a></li>
-      </ul>
-
-      <div class="d-flex align-items-center">
-        @if (!loggedIn()) {
-          <button type="button" class="btn btn-outline-light btn-sm" routerLink="/login">Login</button>
-        } @else {
-          <span class="navbar-text text-truncate">{{ currentUser()?.email }}</span>
-        }
-      </div>
+    <div class="sidebar-footer">
+      @if (!loggedIn()) {
+        <a class="footer-login" routerLink="/login">
+          <svg class="bi" width="16" height="16" role="img" aria-hidden="true"><use xlink:href="bootstrap-icons/bootstrap-icons.svg#box-arrow-in-right"></use></svg>
+          <span>Login</span>
+        </a>
+      } @else {
+        <div class="footer-user" [title]="currentUser()?.email">
+          <span class="footer-avatar" aria-hidden="true">{{ (currentUser()?.email || '?')[0] }}</span>
+          <span class="footer-email text-truncate">{{ currentUser()?.email }}</span>
+        </div>
+      }
     </div>
-  </div>
-</nav>
+  </aside>
 
-<main class="container my-3">
-  <router-outlet></router-outlet>
-</main>
+  <main class="content">
+    <router-outlet></router-outlet>
+  </main>
+</div>

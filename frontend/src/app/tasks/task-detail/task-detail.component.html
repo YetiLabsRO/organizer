@@ -21,7 +21,7 @@
   @if (t.parent_task || t.template) {
     <div class="d-flex flex-wrap align-items-center gap-2 mb-3">
       @if (t.parent_task) {
-        <a class="badge text-bg-light border text-body text-decoration-none d-inline-flex align-items-center gap-1" routerLink="/tasks/{{ t.parent_task }}">
+        <a class="badge bg-body-tertiary border text-body text-decoration-none d-inline-flex align-items-center gap-1" routerLink="/tasks/{{ t.parent_task }}">
           <svg class="bi" width="12" height="12" role="img" aria-label="Parent task"><use xlink:href="bootstrap-icons/bootstrap-icons.svg#diagram-2"></use></svg>
           Parent: {{ t.parent_task_title || 'task #' + t.parent_task }}
         </a>

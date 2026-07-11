@@ -1,0 +1,118 @@
+<div class="focus">
+  <!-- Page header: total + view toggle -->
+  <header class="focus-head">
+    <div class="focus-head-text">
+      <h1 class="focus-title">{{ totalCount() }} Tasks</h1>
+      <p class="focus-subtitle">Manage your high-density workflow and focus on what matters.</p>
+    </div>
+    <div class="view-toggle" role="group" aria-label="View">
+      <button type="button" [class.active]="viewMode() === 'today'" (click)="setView('today')">Today</button>
+      <button type="button" [class.active]="viewMode() === 'todo'" (click)="setView('todo')">Todo</button>
+      <button type="button" [class.active]="viewMode() === 'completed'" (click)="setView('completed')">Completed</button>
+    </div>
+  </header>
+
+  <!-- Global stat tiles -->
+  <section class="stat-tiles" aria-label="Overview">
+    <div class="stat-tile tone-danger">
+      <span class="stat-label">Urgent &amp; Overdue</span>
+      <span class="stat-value">{{ overdueCount() }}</span>
+      <div class="stat-bar"><span [style.width.%]="barWidth(overdueCount())"></span></div>
+    </div>
+    <div class="stat-tile tone-accent">
+      <span class="stat-label">High Priority</span>
+      <span class="stat-value">{{ highCount() }}</span>
+      <div class="stat-bar"><span [style.width.%]="barWidth(highCount())"></span></div>
+    </div>
+    <div class="stat-tile tone-neutral">
+      <span class="stat-label">Due Today</span>
+      <span class="stat-value">{{ dueTodayCount() }}</span>
+      <div class="stat-bar"><span [style.width.%]="barWidth(dueTodayCount())"></span></div>
+    </div>
+  </section>
+
+  <!-- Quick add (revealed by the FAB) -->
+  @if (showQuickAdd()) {
+    <app-task-quick-add class="focus-quick-add" (create)="onQuickAdd($event)" />
+  }
+
+  <!-- Priority band cards -->
+  <section class="bands">
+    @for (band of bandDefs; track band.id) {
+      <div class="band band-{{ band.id }}" [class.collapsed]="isCollapsed(band.id)">
+        <button type="button" class="band-head" (click)="toggleBand(band.id)"
+                [attr.aria-expanded]="!isCollapsed(band.id)">
+          <svg class="bi band-chevron" width="12" height="12" role="img" aria-hidden="true">
+            <use xlink:href="bootstrap-icons/bootstrap-icons.svg#chevron-right"></use>
+          </svg>
+          <span class="band-title">{{ band.title }}</span>
+          <span class="band-count">{{ countIn(band.id) }} items</span>
+        </button>
+
+        @if (!isCollapsed(band.id)) {
+          <div class="band-body">
+            @for (task of tasksIn(band.id); track task.id) {
+              <div class="focus-row" [class.done]="task.completed">
+                <button type="button" class="row-check" (click)="toggleDone(task)"
+                        [attr.aria-pressed]="task.completed" title="Toggle done">
+                  <svg class="bi" width="18" height="18" role="img" aria-label="Done">
+                    @if (!task.completed) {
+                      <use xlink:href="bootstrap-icons/bootstrap-icons.svg#square"></use>
+                    } @else {
+                      <use xlink:href="bootstrap-icons/bootstrap-icons.svg#check-square-fill"></use>
+                    }
+                  </svg>
+                </button>
+
+                @if (priorityFlag(task); as pf) {
+                  <svg class="bi row-flag {{ pf.cls }}" width="12" height="12" role="img"
+                       [attr.aria-label]="pf.label" [title]="pf.label">
+                    <use [attr.xlink:href]="'bootstrap-icons/bootstrap-icons.svg#' + pf.icon"></use>
+                  </svg>
+                }
+
+                <a class="row-title" routerLink="/tasks/{{ task.id }}">{{ task.title }}</a>
+
+                @if (statusBadge(task); as sb) {
+                  <span class="row-status {{ sb.badgeClass }}">{{ sb.label }}</span>
+                }
+
+                <span class="row-spacer"></span>
+
+                @if (tagsFor(task).length) {
+                  <div class="row-tags">
+                    @for (tag of tagsFor(task); track tag.id) {
+                      <span class="tag-chip" [style.background-color]="tag.color" [style.color]="tag | tagColor">{{ tag.name }}</span>
+                    }
+                  </div>
+                }
+
+                @if (deadlineLabel(task); as dl) {
+                  <span class="row-deadline {{ dl.cls }}">{{ dl.text }}</span>
+                } @else if (projectName(task); as pn) {
+                  <span class="row-project">{{ pn }}</span>
+                }
+              </div>
+            } @empty {
+              <p class="band-empty">Nothing here.</p>
+            }
+          </div>
+        }
+      </div>
+    }
+  </section>
+
+  @if (loading()) {
+    <p class="focus-loading">Loading…</p>
+  } @else if (totalCount() === 0) {
+    <p class="focus-empty">No tasks in this view.</p>
+  }
+</div>
+
+<!-- Floating quick-add toggle -->
+<button type="button" class="focus-fab" (click)="toggleQuickAdd()"
+        [class.active]="showQuickAdd()" [attr.aria-pressed]="showQuickAdd()" aria-label="Quick add task">
+  <svg class="bi" width="22" height="22" role="img" aria-hidden="true">
+    <use xlink:href="bootstrap-icons/bootstrap-icons.svg#plus"></use>
+  </svg>
+</button>

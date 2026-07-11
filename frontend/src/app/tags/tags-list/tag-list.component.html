@@ -13,7 +13,7 @@
     <li class = "list-group-item border-0" (click)="onSelect(tag)">
       <div class = "row">
         <div class = "col-3">
-          <a routerLink="/tags/{{ tag.id }}/"><span style="background-color: {{ tag.color }}; color: {{ tag | tagColor }}" class="badge m-1 tag">{{ tag.name }}</span> <span class = "badge rounded-pill bg-light text-dark">{{ tag.count }}</span></a>
+          <a routerLink="/tags/{{ tag.id }}/"><span style="background-color: {{ tag.color }}; color: {{ tag | tagColor }}" class="badge m-1 tag">{{ tag.name }}</span> <span class = "badge rounded-pill text-bg-secondary">{{ tag.count }}</span></a>
         </div>
         <div class = "col-7">
           {{ tag.description }}

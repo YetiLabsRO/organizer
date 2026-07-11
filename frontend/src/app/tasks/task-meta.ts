@@ -2,7 +2,7 @@ import { Task } from './task';
 
 /** Canonical status list (value + label + Bootstrap badge class), shared by list and detail. */
 export const TASK_STATUSES: { value: string; label: string; badgeClass: string }[] = [
-  { value: 'idea', label: 'Idea', badgeClass: 'text-bg-light border' },
+  { value: 'idea', label: 'Idea', badgeClass: 'bg-body-tertiary text-body border' },
   { value: 'blocked', label: 'Blocked', badgeClass: 'text-bg-danger' },
   { value: 'inprogress', label: 'In progress', badgeClass: 'text-bg-info' },
   { value: 'givenup', label: 'Given up', badgeClass: 'text-bg-secondary' },

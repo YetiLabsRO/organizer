@@ -1,10 +1,125 @@
 /* You can add global styles to this file, and also import other style files */
 @import "bootstrap-icons/font/bootstrap-icons.css";
 
+/* ---------------------------------------------------------------------------
+   Design tokens — "Mission Control" dark theme (from the Figma redesign).
+   These are the single source of truth for colour/typography/shape; components
+   consume the --org-* vars, and Bootstrap's theme vars are mapped onto them
+   below so the existing Bootstrap-built pages inherit the same palette.
+   --------------------------------------------------------------------------- */
+:root {
+  --org-bg: #101415;          /* app canvas (near-black) */
+  --org-surface: #1d2022;     /* elevated cards / inputs */
+  --org-surface-2: #272a2c;   /* insets (checkbox, hover) */
+  --org-border: #434656;      /* default hairline border */
+  --org-border-subtle: #323537;
+
+  --org-text: #e0e3e5;        /* primary text */
+  --org-text-muted: #c3c5d9;  /* secondary text */
+  --org-text-dim: #8d90a2;    /* tertiary / labels */
+
+  --org-accent: #b7c4ff;      /* periwinkle — brand, links, active nav */
+  --org-primary: #0052ff;     /* action blue */
+  --org-primary-soft: rgba(0, 82, 255, 0.2);
+
+  --org-danger: #ffb4ab;      /* urgent / overdue text + badge bg */
+  --org-danger-ink: #690005;  /* text on the danger badge */
+  --org-danger-tint: rgba(147, 0, 10, 0.1);   /* urgent group header wash */
+  --org-danger-edge: rgba(255, 180, 171, 0.2);
+
+  --org-chart: #b7c8e1;
+  --org-chart-muted: rgba(183, 200, 225, 0.2);
+
+  --org-radius: 12px;
+  --org-radius-sm: 8px;
+  --org-radius-pill: 9999px;
+
+  --org-sidebar-w: 256px;
+
+  --org-font: "Inter", "Roboto", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --org-font-heading: "Hanken Grotesk", "Inter", system-ui, sans-serif;
+}
+
+/* Map Bootstrap's dark theme onto our tokens so navbars, cards, forms, tables,
+   buttons and text on the not-yet-redesigned pages match the new palette. */
+[data-bs-theme="dark"] {
+  --bs-body-bg: var(--org-bg);
+  --bs-body-color: var(--org-text);
+  --bs-emphasis-color: var(--org-text);
+  --bs-secondary-color: var(--org-text-muted);
+  --bs-tertiary-color: var(--org-text-dim);
+  --bs-body-bg-rgb: 16, 20, 21;
+
+  --bs-secondary-bg: var(--org-surface);
+  --bs-secondary-bg-rgb: 29, 32, 34;
+  --bs-tertiary-bg: var(--org-surface-2);
+  --bs-tertiary-bg-rgb: 39, 42, 44;
+
+  --bs-border-color: var(--org-border);
+  --bs-border-color-translucent: rgba(255, 255, 255, 0.1);
+
+  --bs-link-color: var(--org-accent);
+  --bs-link-color-rgb: 183, 196, 255;
+  --bs-link-hover-color: #dfe3ff;
+  --bs-link-hover-color-rgb: 223, 227, 255;
+
+  --bs-primary: var(--org-primary);
+  --bs-primary-rgb: 0, 82, 255;
+}
+
 html, body { height: 100%; }
-body { margin: 0; font-family: Roboto, "Helvetica Neue", sans-serif; }
+body {
+  margin: 0;
+  font-family: var(--org-font);
+  background-color: var(--org-bg);
+  color: var(--org-text);
+}
 
 .bi {
   vertical-align: -.125em;
   fill: currentColor;
+}
+
+/* ng-bootstrap datepicker (project-form) — its popup ships its own light styling and
+   does not follow Bootstrap's data-bs-theme, so re-skin it onto the dark tokens. */
+[data-bs-theme="dark"] ngb-datepicker {
+  background-color: var(--org-surface);
+  border-color: var(--org-border);
+  color: var(--org-text);
+}
+
+[data-bs-theme="dark"] .ngb-dp-header,
+[data-bs-theme="dark"] .ngb-dp-weekdays {
+  background-color: var(--org-surface-2);
+  border-color: var(--org-border) !important;
+}
+
+[data-bs-theme="dark"] .ngb-dp-weekday {
+  color: var(--org-accent);
+}
+
+[data-bs-theme="dark"] .ngb-dp-arrow-btn,
+[data-bs-theme="dark"] .ngb-dp-navigation-select .form-select {
+  color: var(--org-text);
+  background-color: var(--org-surface-2);
+  border-color: var(--org-border);
+}
+
+[data-bs-theme="dark"] .ngb-dp-day .btn-light {
+  color: var(--org-text);
+  background-color: transparent;
+}
+
+[data-bs-theme="dark"] .ngb-dp-day .btn-light:hover {
+  background-color: var(--org-surface-2);
+}
+
+[data-bs-theme="dark"] .ngb-dp-day .btn-light.bg-primary {
+  background-color: var(--org-primary) !important;
+  color: #fff;
+}
+
+[data-bs-theme="dark"] .ngb-dp-day.disabled .btn-light,
+[data-bs-theme="dark"] .ngb-dp-day.hidden .btn-light {
+  color: var(--org-text-dim);
 }

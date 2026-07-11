@@ -15,6 +15,12 @@ export const routes: Routes = [
   { path: 'login', component: LoginComponent },
   { path: 'tasks', component: TaskListComponent, canActivate: [AuthenticatedGuard] },
   {
+    path: 'tasks/focus',
+    loadComponent: () =>
+      import('./tasks/priority-focus-list/priority-focus-list.component').then((m) => m.PriorityFocusListComponent),
+    canActivate: [AuthenticatedGuard],
+  },
+  {
     path: 'tasks/stats',
     loadComponent: () => import('./tasks/task-stats/task-stats.component').then((m) => m.TaskStatsComponent),
     canActivate: [AuthenticatedGuard],
