@@ -1,0 +1,26 @@
+:host {
+  display: block;
+}
+
+/* Present the project detail as a single surface card. */
+.container-fluid {
+  max-width: 900px;
+  margin: 0 auto;
+  padding: 32px !important;
+  background: var(--org-surface);
+  border: 1px solid var(--org-border);
+  border-radius: var(--org-radius);
+}
+
+h1 {
+  font-family: var(--org-font-heading);
+}
+
+.container-fluid p {
+  color: var(--org-text-muted);
+}
+
+.badge.tag {
+  border-radius: var(--org-radius-sm);
+  font-weight: 500;
+}

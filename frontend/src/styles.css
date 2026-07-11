@@ -123,3 +123,43 @@ body {
 [data-bs-theme="dark"] .ngb-dp-day.hidden .btn-light {
   color: var(--org-text-dim);
 }
+
+/* ngx-chips tag-input (project form) — theme its light internals for dark. */
+[data-bs-theme="dark"] tag-input .ng2-tag-input {
+  background: var(--org-bg) !important;
+  border-bottom-color: var(--org-border) !important;
+}
+
+[data-bs-theme="dark"] tag-input .ng2-tag-input__text-input {
+  background: transparent !important;
+  color: var(--org-text) !important;
+}
+
+[data-bs-theme="dark"] tag-input .ng2-tag-input__text-input::placeholder {
+  color: var(--org-text-dim) !important;
+}
+
+[data-bs-theme="dark"] tag-input tag {
+  background: var(--org-surface-2) !important;
+  color: var(--org-text) !important;
+}
+
+[data-bs-theme="dark"] tag-input tag:hover {
+  background: var(--org-border) !important;
+}
+
+/* Autocomplete dropdown is portalled out of the component — target it globally. */
+[data-bs-theme="dark"] .ng2-dropdown-menu {
+  background: var(--org-surface) !important;
+  border: 1px solid var(--org-border) !important;
+}
+
+[data-bs-theme="dark"] .ng2-menu-item {
+  color: var(--org-text) !important;
+}
+
+[data-bs-theme="dark"] .ng2-menu-item--selected,
+[data-bs-theme="dark"] .ng2-menu-item:hover {
+  background: var(--org-surface-2) !important;
+  color: var(--org-accent) !important;
+}

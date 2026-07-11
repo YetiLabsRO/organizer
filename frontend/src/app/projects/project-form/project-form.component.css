@@ -1,0 +1,43 @@
+:host {
+  display: block;
+}
+
+h1 {
+  font-family: var(--org-font-heading);
+  font-weight: 700;
+  margin-bottom: 20px;
+}
+
+form {
+  max-width: 820px;
+}
+
+label,
+.form-label {
+  color: var(--org-text-muted);
+  font-weight: 600;
+  font-size: 0.8125rem;
+}
+
+.form-control {
+  background-color: var(--org-bg);
+  border-color: var(--org-border);
+  color: var(--org-text);
+}
+
+.form-control:focus {
+  background-color: var(--org-bg);
+  border-color: var(--org-accent);
+  box-shadow: 0 0 0 0.2rem rgba(183, 196, 255, 0.15);
+  color: var(--org-text);
+}
+
+.form-control[readonly] {
+  background-color: var(--org-surface-2);
+  color: var(--org-text-muted);
+}
+
+.badge.tag {
+  border-radius: var(--org-radius-sm);
+  font-weight: 500;
+}
