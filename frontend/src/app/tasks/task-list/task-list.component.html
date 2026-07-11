@@ -36,7 +36,7 @@
 
 @if (dataSource(); as ds) {
   <cdk-virtual-scroll-viewport [itemSize]="rowHeight()" class="task-viewport" minBufferPx="720" maxBufferPx="1440">
-    <div *cdkVirtualFor="let task of ds; trackBy: trackByIndex" class="task-row d-flex align-items-start gap-2 px-2 py-2" [style.height.px]="rowHeight()">
+    <div *cdkVirtualFor="let task of ds; trackBy: trackByIndex" class="task-row d-flex align-items-start gap-2 px-2 py-2" [ngClass]="task ? rowClass(task) : ''" [style.height.px]="rowHeight()">
       @if (task) {
         <div class="flex-shrink-0 task-checks pt-1">
           <button type="button" class="btn btn-link p-0 lh-1 text-body" (click)="toggleTaskDone(task)" [attr.aria-pressed]="task.completed" title="Toggle done">
@@ -51,12 +51,43 @@
         </div>
 
         <div class="flex-grow-1 min-w-0">
-          <a class="task-title d-block text-body text-decoration-none fw-medium" [ngClass]="{'text-decoration-line-through text-muted': task.completed}" routerLink="/tasks/{{ task.id }}">{{ task.title }}</a>
-          @if (task.description) {
-            <app-markdown class="d-none d-md-block task-desc text-muted" [value]="task.description" [inline]="true" />
-          } @else if (task.completed && task.completed_date) {
-            <small class="d-none d-md-block text-muted">✓ Completed {{ task.completed_date | date }}</small>
-          }
+          <div class="task-title-line d-flex align-items-center gap-1">
+            @if (priorityFlag(task); as pf) {
+              <svg class="bi flex-shrink-0" [ngClass]="pf.cls" width="13" height="13" role="img" [attr.aria-label]="pf.label" [title]="pf.label">
+                <use [attr.xlink:href]="'bootstrap-icons/bootstrap-icons.svg#' + pf.icon"></use>
+              </svg>
+            }
+            <a class="task-title text-body text-decoration-none fw-medium" [ngClass]="{'text-decoration-line-through text-muted': task.completed}" routerLink="/tasks/{{ task.id }}">{{ task.title }}</a>
+            @if (statusBadge(task); as sb) {
+              <span class="badge task-chip flex-shrink-0" [ngClass]="sb.badgeClass">{{ sb.label }}</span>
+            }
+            @if (task.template) {
+              <a class="flex-shrink-0 text-info lh-1" routerLink="/tasks/{{ task.id }}" [title]="'Recurring: ' + (task.template_title || 'from template')" aria-label="Recurring task">
+                <svg class="bi" width="12" height="12" role="img"><use xlink:href="bootstrap-icons/bootstrap-icons.svg#arrow-repeat"></use></svg>
+              </a>
+            }
+          </div>
+
+          <div class="task-meta d-flex align-items-center gap-2">
+            @if (deadline(task); as dl) {
+              <span class="task-meta-item" [ngClass]="dl.cls" [title]="'Deadline ' + (dl.date | date:'medium')">
+                <svg class="bi" width="11" height="11" role="img" aria-label="Deadline"><use xlink:href="bootstrap-icons/bootstrap-icons.svg#calendar-event"></use></svg>
+                {{ dl.date | date:'MMM d' }}
+              </span>
+            }
+            @if (projectName(task); as pn) {
+              <span class="task-meta-item text-muted" [title]="'Project: ' + pn">
+                <svg class="bi" width="11" height="11" role="img" aria-label="Project"><use xlink:href="bootstrap-icons/bootstrap-icons.svg#folder"></use></svg>
+                {{ pn }}
+              </span>
+            }
+            @if (task.description) {
+              <app-markdown class="d-none d-md-block task-desc text-muted" [value]="task.description" [inline]="true" />
+            } @else if (task.completed && task.completed_date) {
+              <span class="d-none d-md-inline text-muted">✓ Completed {{ task.completed_date | date }}</span>
+            }
+          </div>
+
           <!-- Tags on mobile: colour dots under the title (the right-hand text pills are desktop-only). -->
           @if (tagsFor(task).length) {
             <div class="d-flex d-md-none flex-wrap gap-2 mt-1 task-dots">

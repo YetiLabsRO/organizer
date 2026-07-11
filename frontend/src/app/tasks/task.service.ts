@@ -1,6 +1,6 @@
 import { Injectable } from '@angular/core';
 import { HttpClient, HttpHeaders } from '@angular/common/http';
-import { Task } from './task';
+import { Task, TaskComment } from './task';
 import { MessageService } from '../message.service';
 import {Observable} from 'rxjs';
 import {catchError, tap} from 'rxjs/operators';
@@ -16,6 +16,7 @@ import {Page} from '../page';
 })
 export class TaskService extends ServiceBase {
   private tasksURL = `${environment.apiBase}/api/task/`
+  private commentsURL = `${environment.apiBase}/api/comments/`
 
   httpOptions = {
     headers: new HttpHeaders({'Content-Type': 'application/json'})
@@ -109,6 +110,16 @@ export class TaskService extends ServiceBase {
         tap((task: Task) => { this.processTagsFromServer(task) }),
         tap((updatedTask: Task) => this.log(`updated task id=${updatedTask.id}`)),
         catchError(this.handleError<Task>('update task'))
+      );
+  }
+
+  /** Add a comment to a task. The author is set server-side from the authenticated user. */
+  addComment(taskId: number, description: string): Observable<TaskComment> {
+    const body: TaskComment = { task: taskId, description };
+    return this.http.post<TaskComment>(this.commentsURL, body, this.httpOptions)
+      .pipe(
+        tap((comment: TaskComment) => this.log(`added comment id=${comment.id} on task ${taskId}`)),
+        catchError(this.handleError<TaskComment>('add comment'))
       );
   }
 }
