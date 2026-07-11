@@ -15,31 +15,42 @@
   }
 }
 
+/* Page title uses the display face, matching the Focus screen and sidebar brand. */
+:host h1 {
+  font-family: var(--org-font-heading);
+  font-weight: 700;
+}
+
 /* Virtual-scroll viewport fills the space under the toolbar down to the page bottom;
-   it scrolls internally so the page itself never grows with the task count. */
+   it scrolls internally so the page itself never grows with the task count. The rows
+   sit inside a single elevated surface panel, echoing the Focus screen's band cards. */
 .task-viewport {
   flex: 1 1 auto;
   min-height: 0; /* allow the flex child to shrink so it scrolls internally */
   overflow-x: hidden;
+  background: var(--org-surface);
+  border: 1px solid var(--org-border);
+  border-radius: var(--org-radius);
 }
 
 .task-row {
-  background: var(--bs-body-bg);
+  background: transparent;
   /* Transparent accent on every row so priority-coloured rows don't shift content sideways. */
   border-left: 3px solid transparent;
+  border-bottom: 1px solid var(--org-border-subtle);
 }
 
 .task-row:hover {
-  background: var(--bs-tertiary-bg);
+  background: rgba(255, 255, 255, 0.03);
 }
 
 /* Priority accent bar (left border). Neutral priority is intentionally unmarked. */
 .task-row.priority-high {
-  border-left-color: var(--bs-danger);
+  border-left-color: var(--org-danger);
 }
 
 .task-row.priority-low {
-  border-left-color: var(--bs-secondary);
+  border-left-color: var(--org-text-dim);
 }
 
 /* Title line: title truncates, badges/flags stay pinned right after it. */
@@ -143,11 +154,12 @@
   }
 }
 
-/* Bigger, clickable tag pills. */
+/* Clickable tag chips — squared to match the Focus screen's chip style. */
 .tag-pill {
-  font-size: 0.8rem;
-  font-weight: 600;
-  padding: 0.35em 0.7em;
+  font-size: 0.78rem;
+  font-weight: 500;
+  padding: 0.28em 0.6em;
+  border-radius: var(--org-radius-sm);
   cursor: pointer;
   transition: filter 0.1s ease-in-out;
 }

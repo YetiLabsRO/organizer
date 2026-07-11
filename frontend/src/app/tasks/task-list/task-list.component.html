@@ -101,7 +101,7 @@
 
         <div class="d-none d-md-flex flex-wrap justify-content-end task-tags">
           @for (tag of tagsFor(task); track tag.id) {
-            <button type="button" class="badge rounded-pill tag-pill border-0"
+            <button type="button" class="badge tag-pill border-0"
                     [style.background-color]="tag.color" [style.color]="tag | tagColor"
                     (click)="filterByTag(tag)" title="Filter by #{{ tag.name }}">{{ tag.name }}</button>
           }
