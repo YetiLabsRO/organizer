@@ -1,4 +1,4 @@
-import { ChangeDetectionStrategy, Component, OnInit, inject, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, OnInit, computed, inject, signal } from '@angular/core';
 import { NavigationEnd, Router, RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
 import { filter } from 'rxjs/operators';
 
@@ -19,14 +19,20 @@ export class AppComponent implements OnInit {
   readonly loggedIn = this.authService.loggedIn;
   /** Off-canvas sidebar state (mobile only; the sidebar is always visible on desktop). */
   readonly menuOpen = signal(false);
+  /** Current URL, tracked so the shell chrome can be hidden on full-screen auth routes. */
+  private readonly currentUrl = signal(this.router.url);
+  /** "Bare" routes render full-screen without the sidebar/top bar (e.g. login). */
+  readonly bare = computed(() => this.currentUrl().startsWith('/login'));
   title = 'organizer-ui';
 
   ngOnInit(): void {
     this.authService.getCurrentUser().subscribe();
-    // Any navigation dismisses the mobile drawer.
     this.router.events
-      .pipe(filter((e) => e instanceof NavigationEnd))
-      .subscribe(() => this.menuOpen.set(false));
+      .pipe(filter((e): e is NavigationEnd => e instanceof NavigationEnd))
+      .subscribe((e) => {
+        this.menuOpen.set(false); // any navigation dismisses the mobile drawer
+        this.currentUrl.set(e.urlAfterRedirects);
+      });
   }
 
   toggleMenu(): void {

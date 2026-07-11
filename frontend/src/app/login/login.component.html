@@ -1,28 +1,36 @@
-<form id="loginForm" [formGroup]="form" (ngSubmit)="doLogin()">
-  @if (form.errors?.serverError) {
-    <div class="alert alert-danger">{{ form.errors?.serverError }}</div>
-  }
-  <div class="mb-3">
-    <label for="emailInput" class="form-label">Email address</label>
-    <input formControlName="email" [ngClass]="{'is-invalid': form.get('email')?.invalid && processing()}" name="email" type="email" class="form-control" id="emailInput" aria-describedby="emailHelp" required>
-    @if (form.get('email')?.errors?.required) {
-      <div class="invalid-feedback">This field is required.</div>
-    }
-    @if (form.get('email')?.errors?.email) {
-      <div class="invalid-feedback">This field only accepts valid email addresses.</div>
-    }
-    @if (form.get('email')?.errors?.serverError) {
-      <div class="invalid-feedback">{{ form.get('email')?.errors?.serverError }}</div>
-    }
+<div class="auth-card">
+  <div class="auth-brand">
+    <span class="auth-title">Organizer</span>
+    <span class="auth-sub">MISSION CONTROL</span>
   </div>
-  <div class="mb-3">
-    <label for="passwordInput" class="form-label">Password</label>
-    <input formControlName="password" [ngClass]="{'is-invalid': form.get('password')?.errors?.serverError}" name="password" type="password" class="form-control" id="passwordInput" required>
-    @if (form.get('password')?.errors?.serverError) {
-      <div class="invalid-feedback">{{ form.get('password')?.errors?.serverError }}</div>
+  <h1 class="auth-heading">Sign in to your workspace</h1>
+
+  <form id="loginForm" [formGroup]="form" (ngSubmit)="doLogin()">
+    @if (form.errors?.serverError) {
+      <div class="alert alert-danger">{{ form.errors?.serverError }}</div>
     }
-  </div>
-  <button type="submit" class="btn btn-primary" [disabled]="processing() || !form.valid">
-    @if (!processing()) { Login } @else { Checking ... }
-  </button>
-</form>
+    <div class="mb-3">
+      <label for="emailInput" class="form-label">Email address</label>
+      <input formControlName="email" [ngClass]="{'is-invalid': form.get('email')?.invalid && processing()}" name="email" type="email" class="form-control" id="emailInput" aria-describedby="emailHelp" required>
+      @if (form.get('email')?.errors?.required) {
+        <div class="invalid-feedback">This field is required.</div>
+      }
+      @if (form.get('email')?.errors?.email) {
+        <div class="invalid-feedback">This field only accepts valid email addresses.</div>
+      }
+      @if (form.get('email')?.errors?.serverError) {
+        <div class="invalid-feedback">{{ form.get('email')?.errors?.serverError }}</div>
+      }
+    </div>
+    <div class="mb-3">
+      <label for="passwordInput" class="form-label">Password</label>
+      <input formControlName="password" [ngClass]="{'is-invalid': form.get('password')?.errors?.serverError}" name="password" type="password" class="form-control" id="passwordInput" required>
+      @if (form.get('password')?.errors?.serverError) {
+        <div class="invalid-feedback">{{ form.get('password')?.errors?.serverError }}</div>
+      }
+    </div>
+    <button type="submit" class="btn btn-primary w-100" [disabled]="processing() || !form.valid">
+      @if (!processing()) { Sign in } @else { Checking… }
+    </button>
+  </form>
+</div>

@@ -1,0 +1,79 @@
+:host {
+  display: grid;
+  place-items: center;
+  min-height: 100dvh;
+  padding: 24px;
+  /* Subtle depth so the card lifts off the flat canvas. */
+  background:
+    radial-gradient(60% 50% at 50% 0%, rgba(0, 82, 255, 0.08), transparent 70%),
+    var(--org-bg);
+}
+
+.auth-card {
+  width: 100%;
+  max-width: 380px;
+  padding: 32px;
+  background: var(--org-surface);
+  border: 1px solid var(--org-border);
+  border-radius: var(--org-radius);
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.4);
+}
+
+.auth-brand {
+  text-align: center;
+  margin-bottom: 6px;
+}
+
+.auth-title {
+  display: block;
+  font-family: var(--org-font-heading);
+  font-weight: 700;
+  font-size: 1.75rem;
+  color: var(--org-accent);
+}
+
+.auth-sub {
+  font-size: 0.6875rem;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  color: var(--org-text-dim);
+}
+
+.auth-heading {
+  text-align: center;
+  margin: 10px 0 24px;
+  font-family: var(--org-font-heading);
+  font-weight: 600;
+  font-size: 1.0625rem;
+  color: var(--org-text-muted);
+}
+
+/* Inputs sit on the deeper canvas colour for contrast against the card. */
+.auth-card .form-control {
+  background-color: var(--org-bg);
+  border-color: var(--org-border);
+  color: var(--org-text);
+}
+
+.auth-card .form-control:focus {
+  background-color: var(--org-bg);
+  border-color: var(--org-accent);
+  box-shadow: 0 0 0 0.2rem rgba(183, 196, 255, 0.15);
+  color: var(--org-text);
+}
+
+.auth-card .form-label {
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: var(--org-text-muted);
+}
+
+.auth-card .btn-primary {
+  --bs-btn-bg: var(--org-primary);
+  --bs-btn-border-color: var(--org-primary);
+  --bs-btn-hover-bg: #1a63ff;
+  --bs-btn-hover-border-color: #1a63ff;
+  font-weight: 600;
+  padding-block: 0.5rem;
+  margin-top: 4px;
+}

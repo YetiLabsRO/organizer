@@ -141,6 +141,12 @@
   padding: 24px;
 }
 
+/* Bare routes (login) render full-screen with no sidebar and no content inset. */
+.app-shell.bare .content {
+  margin-left: 0;
+  padding: 0;
+}
+
 /* --- Mobile top bar + off-canvas ------------------------------------------- */
 .topbar {
   position: sticky;

@@ -1,4 +1,5 @@
-<div class="app-shell" [class.menu-open]="menuOpen()">
+<div class="app-shell" [class.menu-open]="menuOpen()" [class.bare]="bare()">
+  @if (!bare()) {
   <!-- Mobile top bar: brand + hamburger (hidden on desktop, where the sidebar is always shown). -->
   <header class="topbar d-lg-none">
     <button type="button" class="topbar-toggle" (click)="toggleMenu()"
@@ -54,6 +55,7 @@
       }
     </div>
   </aside>
+  }
 
   <main class="content">
     <router-outlet></router-outlet>
