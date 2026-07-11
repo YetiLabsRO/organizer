@@ -215,6 +215,23 @@ CORS_ALLOWED_ORIGINS = config(
 )
 
 
+# Celery — drives recurring-task generation via celery beat. The broker is Redis by default.
+# The REST API does not require Celery; only automatic task generation depends on it. Generation can
+# always be run manually with `manage.py generate_recurring_tasks` if the broker is unavailable.
+from celery.schedules import crontab  # noqa: E402
+
+CELERY_BROKER_URL = config("CELERY_BROKER_URL", default="redis://localhost:6379/0")
+CELERY_RESULT_BACKEND = config("CELERY_RESULT_BACKEND", default="")
+CELERY_TIMEZONE = TIME_ZONE
+CELERY_BEAT_SCHEDULE = {
+    "generate-recurring-tasks": {
+        "task": "tasks.generate_recurring_tasks",
+        # Daily at a configurable hour (local CELERY_TIMEZONE).
+        "schedule": crontab(minute=0, hour=config("RECURRING_TASKS_HOUR", default=6, cast=int)),
+    },
+}
+
+
 # --- MCP server + OAuth 2.1 authorization server -----------------------------------------
 # python-decouple keeps everything after `=` as the value (including any trailing `# comment`),
 # so sanitize before use — this tolerates a stray inline comment or whitespace in a

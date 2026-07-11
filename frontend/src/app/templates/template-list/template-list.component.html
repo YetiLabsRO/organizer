@@ -1,0 +1,45 @@
+<h1>Recurring templates <a routerLink="/templates/edit" class="btn btn-primary float-end">Add</a></h1>
+
+@if (templates(); as templates) {
+  @if (templates.length === 0) {
+    <p class="text-muted mt-3">No templates yet. Add one to have tasks created automatically on a schedule.</p>
+  }
+  <ul class="list-group border-0">
+    @for (template of templates; track template.id) {
+      <li class="list-group-item border-0" [class.opacity-50]="!template.is_active">
+        <div class="row align-items-center">
+          <div class="col-md-6">
+            <a routerLink="/templates/{{ template.id }}/edit" class="fw-semibold">{{ template.title }}</a>
+            @if (!template.is_active) { <span class="badge bg-secondary ms-1">paused</span> }
+            <br>
+            <small class="text-muted">{{ template.schedule_summary }}</small>
+            @for (tag of template._tags; track tag.id) {
+              <span [style.background-color]="tag.color"
+                    [style.color]="tag.color | reverseLuminanceColor"
+                    class="badge ms-1 tag">{{ tag.name }}</span>
+            }
+          </div>
+          <div class="col-md-3">
+            @if (template.next_occurrence) {
+              <small class="text-muted">next: {{ template.next_occurrence }}</small>
+            } @else {
+              <small class="text-muted">—</small>
+            }
+          </div>
+          <div class="col-md-3 text-md-end">
+            <button type="button" class="btn btn-sm btn-outline-success"
+                    [disabled]="busy() === template.id" (click)="runNow(template)">Run now</button>
+            <button type="button" class="btn btn-sm btn-outline-secondary ms-1"
+                    [disabled]="busy() === template.id" (click)="toggleActive(template)">
+              {{ template.is_active ? 'Pause' : 'Activate' }}
+            </button>
+            <button type="button" class="btn btn-sm btn-outline-danger ms-1"
+                    (click)="remove(template)">Delete</button>
+          </div>
+        </div>
+      </li>
+    }
+  </ul>
+} @else {
+  <p class="text-muted mt-3">Loading…</p>
+}

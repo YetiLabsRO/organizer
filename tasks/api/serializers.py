@@ -3,7 +3,8 @@ from rest_framework import serializers
 from rest_framework.authtoken.models import Token
 from rest_framework.relations import PrimaryKeyRelatedField
 
-from tasks.models import Project, Tag, TaskComment, TaskItem
+from tasks import recurrence
+from tasks.models import Project, Tag, TaskComment, TaskItem, TaskTemplate
 
 __author__ = "andrei"
 
@@ -124,6 +125,56 @@ class ProjectSerializer(serializers.ModelSerializer):
     # slug = serializers.ReadOnlyField()
     start_date = serializers.DateTimeField(required=False, format="%d/%m/%Y")
     end_date = serializers.DateTimeField(required=False, format="%d/%m/%Y")
+
+
+class TaskTemplateSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = TaskTemplate
+        fields = ("id", "title", "description", "priority", "estimated_time", "project", "tags",
+                  "frequency", "interval", "day_of_month", "weekdays", "month_of_year",
+                  "start_on", "end_on", "rrule", "lead_time_days", "skip_if_previous_open",
+                  "is_active", "last_generated_occurrence", "schedule_summary", "next_occurrence",
+                  "created_date", "changed_date")
+        read_only_fields = ("last_generated_occurrence", "created_date", "changed_date")
+
+    tags = PrimaryKeyRelatedField(queryset=Tag.objects.all(), many=True, allow_null=True, required=False)
+    # Owner is set server-side (see TaskTemplateViewSet.perform_create); clients cannot assign it.
+    schedule_summary = serializers.SerializerMethodField()
+    next_occurrence = serializers.SerializerMethodField()
+
+    def get_schedule_summary(self, obj):
+        return recurrence.schedule_summary(obj)
+
+    def get_next_occurrence(self, obj):
+        nxt = recurrence.next_occurrence(obj)
+        return nxt.isoformat() if nxt else None
+
+    def validate_interval(self, value):
+        if value < 1:
+            raise serializers.ValidationError("Interval must be at least 1.")
+        return value
+
+    def validate_day_of_month(self, value):
+        if value is not None and not (1 <= value <= 31):
+            raise serializers.ValidationError("day_of_month must be between 1 and 31.")
+        return value
+
+    def validate_month_of_year(self, value):
+        if value is not None and not (1 <= value <= 12):
+            raise serializers.ValidationError("month_of_year must be between 1 and 12.")
+        return value
+
+    def validate_weekdays(self, value):
+        if value and any(not (0 <= wd <= 6) for wd in value):
+            raise serializers.ValidationError("weekdays must be integers 0 (Monday)–6 (Sunday).")
+        return value
+
+    def validate(self, attrs):
+        start_on = attrs.get("start_on", getattr(self.instance, "start_on", None))
+        end_on = attrs.get("end_on", getattr(self.instance, "end_on", None))
+        if start_on and end_on and end_on < start_on:
+            raise serializers.ValidationError({"end_on": "end_on must be on or after start_on."})
+        return attrs
 
 
 class UserTokenSerializer(TokenSerializer):

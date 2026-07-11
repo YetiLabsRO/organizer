@@ -1,0 +1,183 @@
+@if (template(); as template) {
+  <h1>{{ template.title }}</h1>
+} @else {
+  <h1>New recurring template</h1>
+}
+
+<form [formGroup]="templateForm" (ngSubmit)="onSubmit()">
+  <input type="hidden" formControlName="id">
+
+  @if (templateForm.errors?.serverError) {
+    <div class="alert alert-danger">{{ templateForm.errors?.serverError }}</div>
+  }
+
+  <div class="row mb-2">
+    <div class="col-8">
+      <label for="title" class="form-label">Title</label>
+      <input class="form-control" id="title" type="text" formControlName="title"
+             [ngClass]="{'is-invalid': templateForm.get('title')?.invalid && showErrors()}">
+      @if (templateForm.get('title')?.invalid && showErrors()) {
+        <div class="invalid-feedback">
+          @if (templateForm.get('title')?.errors?.serverError) {
+            <div>{{ templateForm.get('title')?.errors?.serverError }}</div>
+          } @else {
+            <div>This field is required.</div>
+          }
+        </div>
+      }
+    </div>
+    <div class="col-4">
+      <label for="priority" class="form-label">Priority</label>
+      <select class="form-select" id="priority" formControlName="priority">
+        @for (p of priorities; track p.value) {
+          <option [ngValue]="p.value">{{ p.label }}</option>
+        }
+      </select>
+    </div>
+  </div>
+
+  <div class="row mb-2">
+    <div class="col-12">
+      <label for="description" class="form-label">Description</label>
+      <textarea class="form-control" id="description" formControlName="description"></textarea>
+    </div>
+  </div>
+
+  <div class="row mb-2">
+    <div class="col-6">
+      <label for="project" class="form-label">Project</label>
+      <select class="form-select" id="project" formControlName="project">
+        <option [ngValue]="null">— none —</option>
+        @for (project of projects(); track project.id) {
+          <option [ngValue]="project.id">{{ project.title }}</option>
+        }
+      </select>
+    </div>
+    <div class="col-6">
+      <label for="estimated_time" class="form-label">Estimated time (min)</label>
+      <input class="form-control" id="estimated_time" type="number" min="0" formControlName="estimated_time">
+    </div>
+  </div>
+
+  <div class="row mb-2">
+    <div class="col-12">
+      <label class="form-label">Tags</label>
+      <tag-input identifyBy="id" displayBy="name" formControlName="_tags" theme="bootstrap"
+                 [onlyFromAutocomplete]="true">
+        <tag-input-dropdown [autocompleteObservable]="searchTags()" [showDropdownIfEmpty]="true"
+                            displayBy="name" identifyBy="id">
+        </tag-input-dropdown>
+      </tag-input>
+    </div>
+  </div>
+
+  <hr>
+  <h5>Recurrence</h5>
+
+  <div class="row mb-2">
+    <div class="col-4">
+      <label for="frequency" class="form-label">Repeats</label>
+      <select class="form-select" id="frequency" formControlName="frequency">
+        <option value="daily">Daily</option>
+        <option value="weekly">Weekly</option>
+        <option value="monthly">Monthly</option>
+        <option value="yearly">Yearly</option>
+      </select>
+    </div>
+    <div class="col-4">
+      <label for="interval" class="form-label">Every</label>
+      <div class="input-group">
+        <input class="form-control" id="interval" type="number" min="1" formControlName="interval"
+               [ngClass]="{'is-invalid': templateForm.get('interval')?.invalid && showErrors()}">
+        <span class="input-group-text">
+          @switch (frequency()) {
+            @case ('daily') { day(s) }
+            @case ('weekly') { week(s) }
+            @case ('monthly') { month(s) }
+            @case ('yearly') { year(s) }
+          }
+        </span>
+      </div>
+    </div>
+  </div>
+
+  @if (frequency() === 'weekly') {
+    <div class="row mb-2">
+      <div class="col-12">
+        <label class="form-label d-block">On weekdays</label>
+        <div class="btn-group flex-wrap" role="group">
+          @for (wd of weekdayLabels; track wd.value) {
+            <button type="button" class="btn btn-sm"
+                    [class.btn-primary]="isWeekdaySelected(wd.value)"
+                    [class.btn-outline-secondary]="!isWeekdaySelected(wd.value)"
+                    (click)="toggleWeekday(wd.value)">{{ wd.label }}</button>
+          }
+        </div>
+      </div>
+    </div>
+  }
+
+  @if (frequency() === 'monthly' || frequency() === 'yearly') {
+    <div class="row mb-2">
+      @if (frequency() === 'yearly') {
+        <div class="col-6">
+          <label for="month_of_year" class="form-label">Month</label>
+          <select class="form-select" id="month_of_year" formControlName="month_of_year">
+            @for (m of months; track $index) {
+              <option [ngValue]="$index + 1">{{ m }}</option>
+            }
+          </select>
+        </div>
+      }
+      <div class="col-6">
+        <label for="day_of_month" class="form-label">Day of month</label>
+        <input class="form-control" id="day_of_month" type="number" min="1" max="31"
+               formControlName="day_of_month">
+        <small class="text-muted">Day 31 falls on the last day of shorter months.</small>
+      </div>
+    </div>
+  }
+
+  <div class="row mb-2">
+    <div class="col-4">
+      <label for="start_on" class="form-label">Start on</label>
+      <input class="form-control" id="start_on" type="date" formControlName="start_on">
+    </div>
+    <div class="col-4">
+      <label for="end_on" class="form-label">End on (optional)</label>
+      <input class="form-control" id="end_on" type="date" formControlName="end_on"
+             [ngClass]="{'is-invalid': templateForm.get('end_on')?.errors?.serverError && showErrors()}">
+      @if (templateForm.get('end_on')?.errors?.serverError && showErrors()) {
+        <div class="invalid-feedback">{{ templateForm.get('end_on')?.errors?.serverError }}</div>
+      }
+    </div>
+    <div class="col-4">
+      <label for="lead_time_days" class="form-label">Create days early</label>
+      <input class="form-control" id="lead_time_days" type="number" min="0" formControlName="lead_time_days">
+    </div>
+  </div>
+
+  <div class="row mb-2">
+    <div class="col-12 form-check ms-2">
+      <input class="form-check-input" type="checkbox" id="skip_if_previous_open"
+             formControlName="skip_if_previous_open">
+      <label class="form-check-label" for="skip_if_previous_open">
+        Don't create the next task while the previous one is still open
+      </label>
+    </div>
+    <div class="col-12 form-check ms-2">
+      <input class="form-check-input" type="checkbox" id="is_active" formControlName="is_active">
+      <label class="form-check-label" for="is_active">Active</label>
+    </div>
+  </div>
+
+  <div class="row mb-2 mt-3">
+    <div class="col-12">
+      <button class="btn btn-primary" type="submit">Save</button>
+      <a routerLink="/templates" class="btn btn-outline-secondary ms-1">Cancel</a>
+      @if (templateForm.get('id')?.value) {
+        <button class="float-end btn btn-outline-danger" type="button" (click)="onDelete()">Delete</button>
+      }
+    </div>
+  </div>
+</form>

@@ -9,6 +9,8 @@ import { TagDetailComponent } from './tags/tag-detail/tag-detail.component';
 import { ProjectListComponent } from './projects/project-list/project-list.component';
 import { ProjectDetailComponent } from './projects/project-details/project-detail.component';
 import { ProjectFormComponent } from './projects/project-form/project-form.component';
+import { TemplateListComponent } from './templates/template-list/template-list.component';
+import { TemplateFormComponent } from './templates/template-form/template-form.component';
 
 export const routes: Routes = [
   { path: '', redirectTo: '/tasks', pathMatch: 'full' },
@@ -27,4 +29,7 @@ export const routes: Routes = [
   { path: 'projects/edit', component: ProjectFormComponent, canActivate: [AuthenticatedGuard] },
   { path: 'projects/:id', component: ProjectDetailComponent, canActivate: [AuthenticatedGuard] },
   { path: 'projects/:id/edit', component: ProjectFormComponent, canActivate: [AuthenticatedGuard] },
+  { path: 'templates', component: TemplateListComponent, canActivate: [AuthenticatedGuard] },
+  { path: 'templates/edit', component: TemplateFormComponent, canActivate: [AuthenticatedGuard] },
+  { path: 'templates/:id/edit', component: TemplateFormComponent, canActivate: [AuthenticatedGuard] },
 ];

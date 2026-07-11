@@ -62,7 +62,7 @@
               <span class="badge task-chip flex-shrink-0" [ngClass]="sb.badgeClass">{{ sb.label }}</span>
             }
             @if (task.template) {
-              <a class="flex-shrink-0 text-info lh-1" routerLink="/tasks/{{ task.id }}" [title]="'Recurring: ' + (task.template_title || 'from template')" aria-label="Recurring task">
+              <a class="flex-shrink-0 text-info lh-1" routerLink="/templates/{{ task.template }}/edit" [title]="'Recurring: ' + (task.template_title || 'from template')" aria-label="Recurring task — edit template">
                 <svg class="bi" width="12" height="12" role="img"><use xlink:href="bootstrap-icons/bootstrap-icons.svg#arrow-repeat"></use></svg>
               </a>
             }

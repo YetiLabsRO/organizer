@@ -39,3 +39,44 @@ environment for the deploy jobs):
   `MCP_BASE_URL`. `oauth2_provider` tables are created by the deploy's `migrate` step.
 - The deploy user can run the configured restart command (and `sudo` for the frontend web-root copy).
 - Database dumps are written to `/var/backups/organizer/` and pruned after 7 days.
+
+## Recurring-task scheduling (Celery + Redis)
+
+Recurring task templates are materialized into real tasks by a **Celery beat** schedule (see
+`organizer/celery.py` and `CELERY_BEAT_SCHEDULE` in `organizer/settings.py`). This needs a **Redis**
+broker and two long-running processes alongside the web app. The REST API keeps working without them
+— only *automatic* generation pauses — so this is optional-but-recommended infrastructure.
+
+Set the broker in the app's `.env` (see `.env.example`):
+
+```
+CELERY_BROKER_URL=redis://localhost:6379/0
+RECURRING_TASKS_HOUR=6        # hour of day (local TIME_ZONE) the daily job runs
+```
+
+Run Redis (`sudo apt install redis-server`), then add two **supervisor** programs (the project already
+uses supervisor for the web app):
+
+```ini
+[program:organizer-celery-worker]
+command=/var/app/organizer/.venv/bin/celery -A organizer worker -l info
+directory=/var/app/organizer
+autostart=true
+autorestart=true
+
+[program:organizer-celery-beat]
+command=/var/app/organizer/.venv/bin/celery -A organizer beat -l info
+directory=/var/app/organizer
+autostart=true
+autorestart=true
+```
+
+`supervisorctl reread && supervisorctl update` to pick them up. After a deploy that changes task code,
+restart them alongside the web app (`supervisorctl restart organizer organizer-celery-worker organizer-celery-beat`).
+
+**Fallback without Celery/Redis:** the same generation logic is a management command, so a plain cron
+entry works too:
+
+```
+0 6 * * *  cd /var/app/organizer && .venv/bin/python manage.py generate_recurring_tasks
+```
