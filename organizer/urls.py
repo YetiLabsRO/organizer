@@ -31,7 +31,14 @@ urlpatterns = [
     # plus RFC 8414 metadata and RFC 7591 dynamic client registration (mcp_server/oauth_views.py).
     # The /mcp endpoint and the RFC 9728 protected-resource metadata are served by the MCP
     # ASGI app (organizer/asgi.py), not routed here.
+    # The advertised issuer is host-only, so pydantic renders it with a trailing slash
+    # ("https://host/"). Clients concatenate the well-known suffix onto that issuer, and RFC 8414
+    # §3.1 also allows appending the resource path — so serve the same document at every URL a
+    # client may build. Missing these makes AS discovery 404, and the client then falls back to
+    # the MCP default endpoints (/authorize, /token) at the issuer root.
     path('.well-known/oauth-authorization-server', authorization_server_metadata, name='oauth_as_metadata'),
+    path('.well-known/oauth-authorization-server/', authorization_server_metadata),
+    path('.well-known/oauth-authorization-server/mcp', authorization_server_metadata),
     path('o/register/', RegisterClientView.as_view(), name='oauth_register'),
     path('o/', include('oauth2_provider.urls', namespace='oauth2_provider')),
 ]
