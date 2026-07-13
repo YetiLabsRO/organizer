@@ -53,6 +53,11 @@ export class TaskQuickAddComponent {
     this.tagService.getTagsCached().subscribe((tags) => (this.tags = tags));
   }
 
+  /** Put the caret in the field (used by the list's `c` shortcut). */
+  focus(): void {
+    this.inputRef().nativeElement.focus();
+  }
+
   onInput(event: Event): void {
     const input = event.target as HTMLInputElement;
     this.text.set(input.value);

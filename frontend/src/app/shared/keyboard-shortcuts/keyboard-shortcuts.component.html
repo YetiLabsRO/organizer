@@ -1,0 +1,33 @@
+@if (open()) {
+  <div class="ks-scrim" (click)="close()"></div>
+
+  <div class="ks-panel" role="dialog" aria-modal="true" aria-labelledby="ks-title">
+    <div class="ks-head">
+      <h2 class="ks-title" id="ks-title">{{ title() }}</h2>
+      <button type="button" class="ks-close" (click)="close()" aria-label="Close">
+        <svg class="bi" width="18" height="18" role="img" aria-hidden="true"><use xlink:href="bootstrap-icons/bootstrap-icons.svg#x-lg"></use></svg>
+      </button>
+    </div>
+
+    <div class="ks-body">
+      @for (group of groups(); track group.title) {
+        <section class="ks-group">
+          <h3 class="ks-group-title">{{ group.title }}</h3>
+          <dl class="ks-list">
+            @for (item of group.items; track item.label) {
+              <div class="ks-item">
+                <dt class="ks-keys">
+                  @for (key of item.keys; track $index) {
+                    @if (!$first) { <span class="ks-plus">+</span> }
+                    <kbd class="ks-key">{{ key }}</kbd>
+                  }
+                </dt>
+                <dd class="ks-label">{{ item.label }}</dd>
+              </div>
+            }
+          </dl>
+        </section>
+      }
+    </div>
+  </div>
+}

@@ -1,9 +1,12 @@
-import { ChangeDetectionStrategy, Component, Input, OnDestroy, OnInit, computed, inject, signal } from '@angular/core';
+import {
+  ChangeDetectionStrategy, Component, ElementRef, Input, OnDestroy, OnInit, computed, effect, inject, signal,
+  untracked, viewChild,
+} from '@angular/core';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { NgClass, DatePipe } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { RouterLink } from '@angular/router';
-import { ScrollingModule } from '@angular/cdk/scrolling';
+import { Router, RouterLink } from '@angular/router';
+import { CdkVirtualScrollViewport, ScrollingModule } from '@angular/cdk/scrolling';
 import { BreakpointObserver } from '@angular/cdk/layout';
 import { Subject, Subscription } from 'rxjs';
 import { debounceTime, distinctUntilChanged, map, tap } from 'rxjs/operators';
@@ -16,23 +19,34 @@ import { ProjectService } from '../../projects/project.service';
 import { TaskFilters } from '../task-filters';
 import { TaskDataSource, TaskPageLoader, TASK_PAGE_SIZE } from '../task-data-source';
 import { TaskQuickAddComponent, NewTaskRequest } from '../task-quick-add/task-quick-add.component';
+import { TaskDrawerService } from '../task-drawer.service';
 import { MarkdownComponent } from '../../shared/markdown/markdown.component';
+import { KeyboardShortcutsComponent, ShortcutGroup } from '../../shared/keyboard-shortcuts/keyboard-shortcuts.component';
 import {
   DeadlineInfo, PriorityFlag, deadlineInfo, listStatusMeta, priorityFlag, priorityRowClass,
 } from '../task-meta';
+
+/** `Ctrl+<digit>` → the filter toggle it drives. */
+const FILTER_KEYS: { [digit: string]: string } = { '1': 'todo', '2': 'completed', '3': 'today' };
+
+/** Anything that takes typed characters; a bare-key shortcut must never fire from inside one. */
+const EDITABLE_SELECTOR = 'input, textarea, select, [contenteditable]:not([contenteditable="false"])';
 
 @Component({
   selector: 'app-task-list',
   imports: [
     FormsModule, NgClass, DatePipe, RouterLink, TagColorPipe, ScrollingModule,
-    TaskQuickAddComponent, MarkdownComponent,
+    TaskQuickAddComponent, MarkdownComponent, KeyboardShortcutsComponent,
   ],
   templateUrl: './task-list.component.html',
   styleUrls: ['./task-list.component.css'],
+  host: { '(document:keydown)': 'onKeydown($event)' },
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class TaskListComponent implements OnInit, OnDestroy {
   private readonly breakpointObserver = inject(BreakpointObserver);
+  private readonly router = inject(Router);
+  private readonly taskDrawer = inject(TaskDrawerService);
   readonly isMobile = toSignal(
     this.breakpointObserver.observe('(max-width: 767.98px)').pipe(map((r) => r.matches)),
     { initialValue: false },
@@ -55,6 +69,14 @@ export class TaskListComponent implements OnInit, OnDestroy {
 
   searchInput = '';
 
+  /** Index of the keyboard-highlighted row in the list, or -1 for none. */
+  readonly highlighted = signal(-1);
+  readonly shortcutsOpen = signal(false);
+
+  private readonly viewport = viewChild(CdkVirtualScrollViewport);
+  private readonly searchBox = viewChild<ElementRef<HTMLInputElement>>('searchBox');
+  private readonly quickAdd = viewChild(TaskQuickAddComponent);
+
   @Input() filters_tags: Tag[] | null = null;
   @Input() for_tag: Tag | null = null;
 
@@ -65,7 +87,17 @@ export class TaskListComponent implements OnInit, OnDestroy {
     private taskService: TaskService,
     private tagService: TagService,
     private projectService: ProjectService,
-  ) { }
+  ) {
+    // Keep the highlight inside the list as it shrinks under it (a row deleted, completed, or
+    // filtered away). The count settles asynchronously, off the server, so this can't be a
+    // one-shot clamp at the call site.
+    effect(() => {
+      const last = this.totalCount() - 1;
+      untracked(() => {
+        if (this.highlighted() > last) this.highlighted.set(Math.max(-1, last));
+      });
+    });
+  }
 
   ngOnInit(): void {
     this.getTags();
@@ -155,6 +187,8 @@ export class TaskListComponent implements OnInit, OnDestroy {
 
   /** Rebuild the windowed data source for the current filters/search (resets to the top). */
   private rebuild(): void {
+    // Row indices are only meaningful for one query, so the highlight doesn't survive a rebuild.
+    this.highlighted.set(-1);
     this.dataSource.set(new TaskDataSource(this.makeLoader()));
   }
 
@@ -211,43 +245,240 @@ export class TaskListComponent implements OnInit, OnDestroy {
   }
 
   deleteTask(task: Task): void {
-    if (task.id != null) {
-      this.taskService.deleteTask(task.id).subscribe();
-    }
-    this.dataSource()?.removeById(task.id);
-    this.totalCount.update(c => Math.max(0, c - 1));
+    if (task.id == null) return;
+    this.taskService.deleteTask(task.id).subscribe(() => {
+      this.dataSource()?.removeById(task.id);
+      this.totalCount.update(c => Math.max(0, c - 1));
+    });
   }
 
   toggleTaskDone(task: Task): void {
     if (!task) return;
     task.completed = !task.completed;
     if (task.completed && task.for_today) task.for_today = false;
-    this.taskService.updateTask(task).subscribe();
 
     const f = this.filters();
     const showsBothStates = f['todo'] && f['completed'];
-    if (showsBothStates && !f['today']) {
-      this.dataSource()?.replace(task);
-    } else {
-      // removeById self-heals: if the task still matches, the range refetch brings it back.
-      this.dataSource()?.removeById(task.id);
-    }
+    const staysInList = showsBothStates && !f['today'];
+
+    this.applyAfterWrite(task, staysInList);
   }
 
   toggleTaskToday(task: Task): void {
     if (!task || task.completed) return;
     task.for_today = !task.for_today;
-    this.taskService.updateTask(task).subscribe();
 
-    if (this.filters()['today'] && !task.for_today) {
-      this.dataSource()?.removeById(task.id);
-    } else {
-      this.dataSource()?.replace(task);
-    }
+    const staysInList = !(this.filters()['today'] && !task.for_today);
+
+    this.applyAfterWrite(task, staysInList);
+  }
+
+  /**
+   * Persist a toggled task, then fold it back into the list.
+   *
+   * The list is only touched once the write has landed. `removeById` revalidates the visible range
+   * against the server, so a refetch fired while the PATCH is still in flight reads the task back
+   * in its pre-toggle state and puts the row straight back on screen.
+   */
+  private applyAfterWrite(task: Task, staysInList: boolean): void {
+    this.taskService.updateTask(task).subscribe(() => {
+      if (staysInList) {
+        this.dataSource()?.replace(task);
+      } else {
+        this.dataSource()?.removeById(task.id);
+      }
+    });
   }
 
   trackByIndex(index: number): number {
     return index;
+  }
+
+  // --- Keyboard shortcuts ---
+
+  readonly shortcutGroups: ShortcutGroup[] = [
+    {
+      title: 'Navigation',
+      items: [
+        { keys: ['↑'], label: 'Highlight the previous task' },
+        { keys: ['↓'], label: 'Highlight the next task' },
+        { keys: ['/'], label: 'Search tasks' },
+        { keys: ['c'], label: 'Add a task' },
+      ],
+    },
+    {
+      title: 'Highlighted task',
+      items: [
+        { keys: ['Enter'], label: 'Toggle done / not done' },
+        { keys: ['e'], label: 'Edit the task' },
+        { keys: ['t'], label: 'Toggle today' },
+        { keys: ['Delete'], label: 'Delete the task' },
+      ],
+    },
+    {
+      title: 'Filters',
+      items: [
+        { keys: ['Ctrl', '1'], label: 'Show / hide todo tasks' },
+        { keys: ['Ctrl', '2'], label: 'Show / hide completed tasks' },
+        { keys: ['Ctrl', '3'], label: 'Show / hide today’s tasks' },
+      ],
+    },
+    {
+      title: 'Help',
+      items: [
+        { keys: ['?'], label: 'Open this panel' },
+        { keys: ['Esc'], label: 'Close the panel / leave the field' },
+      ],
+    },
+  ];
+
+  onKeydown(event: KeyboardEvent): void {
+    if (event.defaultPrevented) return;
+
+    // A modal owns the keyboard while it is up. The create-task drawer is mounted app-wide, so it
+    // can be open *over* this list — without this the list would still act on keys pressed while
+    // focus sits on one of the drawer's buttons (or on nothing at all). Both close on Escape.
+    if (this.taskDrawer.open()) return;
+    if (this.shortcutsOpen()) {
+      if (event.key === '?') {
+        event.preventDefault();
+        this.shortcutsOpen.set(false);
+      }
+      return;
+    }
+
+    // Ctrl/Cmd+1..3 drive the filter toggles. Safe to handle even mid-typing: they emit no text.
+    const filter = (event.ctrlKey || event.metaKey) && !event.altKey ? FILTER_KEYS[event.key] : undefined;
+    if (filter) {
+      event.preventDefault();
+      this.toggleFilters(filter);
+      return;
+    }
+    if (event.ctrlKey || event.metaKey || event.altKey) return;
+
+    // Everything below is a bare, unmodified key, so it competes with typing. If the user is in a
+    // field, none of it may fire — Escape just gets them back out. Keep this the last thing before
+    // the switch, so any shortcut added later is guarded by construction.
+    if (this.isTyping(event)) {
+      if (event.key === 'Escape') this.activeElement()?.blur();
+      return;
+    }
+
+    switch (event.key) {
+      case 'ArrowDown':
+        event.preventDefault();
+        this.moveHighlight(1);
+        return;
+      case 'ArrowUp':
+        event.preventDefault();
+        this.moveHighlight(-1);
+        return;
+      case '/':
+        event.preventDefault();
+        this.focusSearch();
+        return;
+      case 'c':
+        event.preventDefault();
+        this.quickAdd()?.focus();
+        return;
+      case '?':
+        event.preventDefault();
+        this.shortcutsOpen.set(true);
+        return;
+      case 'Escape':
+        this.highlighted.set(-1);
+        return;
+    }
+
+    const task = this.highlightedTask();
+    if (!task) return;
+
+    switch (event.key) {
+      case 'Enter':
+        event.preventDefault();
+        this.toggleTaskDone(task);
+        return;
+      case 'e':
+        event.preventDefault();
+        this.router.navigate(['/tasks', task.id]);
+        return;
+      case 't':
+        event.preventDefault();
+        this.toggleTaskToday(task);
+        return;
+      case 'Delete':
+        event.preventDefault();
+        this.deleteTask(task);
+        return;
+    }
+  }
+
+  /** Highlight a row from the pointer, so a click hands the cursor over to the keyboard. */
+  highlight(index: number): void {
+    this.highlighted.set(index);
+  }
+
+  /** The task under the highlight, or undefined when nothing is highlighted (or its page is still loading). */
+  private highlightedTask(): Task | undefined {
+    return this.dataSource()?.taskAt(this.highlighted());
+  }
+
+  private moveHighlight(delta: number): void {
+    const last = this.totalCount() - 1;
+    if (last < 0) {
+      this.highlighted.set(-1);
+      return;
+    }
+    const current = this.highlighted();
+    const next = current < 0 ? 0 : Math.min(last, Math.max(0, current + delta));
+    this.highlighted.set(next);
+    this.scrollIntoView(next);
+  }
+
+  /**
+   * Scroll the row at `index` just into view, leaving the viewport alone when it already is.
+   * Rows are a fixed height, so the offsets are arithmetic — no DOM measuring of the row itself,
+   * which also means this works for rows the virtual scroller hasn't rendered (or fetched) yet.
+   */
+  private scrollIntoView(index: number): void {
+    const viewport = this.viewport();
+    if (!viewport) return;
+    const height = this.rowHeight();
+    const top = index * height;
+    const offset = viewport.measureScrollOffset();
+    const size = viewport.getViewportSize();
+    if (top < offset) {
+      viewport.scrollToOffset(top);
+    } else if (top + height > offset + size) {
+      viewport.scrollToOffset(top + height - size);
+    }
+  }
+
+  private focusSearch(): void {
+    const input = this.searchBox()?.nativeElement;
+    input?.focus();
+    input?.select();
+  }
+
+  /**
+   * Is the user typing into something?
+   *
+   * Checks the event's target *and* the focused element: a control may retarget the event at its
+   * host (custom elements, ngx-chips), in which case the target alone isn't a field but the focused
+   * element is. `closest` rather than a tag check, so a caret inside a contenteditable's child
+   * element still counts.
+   */
+  private isTyping(event: KeyboardEvent): boolean {
+    return this.isEditable(event.target) || this.isEditable(this.activeElement());
+  }
+
+  private isEditable(target: EventTarget | null): boolean {
+    const el = target as Element | null;
+    return typeof el?.closest === 'function' && el.closest(EDITABLE_SELECTOR) !== null;
+  }
+
+  private activeElement(): HTMLElement | null {
+    return document.activeElement as HTMLElement | null;
   }
 
   protected readonly TASK_PAGE_SIZE = TASK_PAGE_SIZE;

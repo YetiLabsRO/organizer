@@ -24,19 +24,22 @@
     <span class="input-group-text" aria-hidden="true">
       <svg class="bi" width="14" height="14" role="img" aria-label="Search"><use xlink:href="bootstrap-icons/bootstrap-icons.svg#search"></use></svg>
     </span>
-    <input type="search" class="form-control" [ngModel]="searchInput" (ngModelChange)="onSearch($event)" placeholder="Search tasks…" aria-label="Search tasks">
+    <input #searchBox type="search" class="form-control" [ngModel]="searchInput" (ngModelChange)="onSearch($event)" placeholder="Search tasks… (/)" aria-label="Search tasks">
   </div>
   <a routerLink="/tasks/stats" [queryParams]="statsQueryParams" class="btn btn-sm btn-outline-secondary d-flex align-items-center justify-content-center gap-1" title="Stats for these filters">
     <svg class="bi" width="14" height="14" role="img" aria-label="Stats"><use xlink:href="bootstrap-icons/bootstrap-icons.svg#bar-chart"></use></svg>
     <span>Stats</span>
   </a>
+  <button type="button" class="btn btn-sm btn-outline-secondary d-flex align-items-center justify-content-center gap-1" (click)="shortcutsOpen.set(true)" title="Keyboard shortcuts (?)">
+    <svg class="bi" width="14" height="14" role="img" aria-label="Keyboard shortcuts"><use xlink:href="bootstrap-icons/bootstrap-icons.svg#keyboard"></use></svg>
+  </button>
 </div>
 
 <app-task-quick-add class="d-block mb-3" (create)="onQuickAdd($event)" />
 
 @if (dataSource(); as ds) {
   <cdk-virtual-scroll-viewport [itemSize]="rowHeight()" class="task-viewport" minBufferPx="720" maxBufferPx="1440">
-    <div *cdkVirtualFor="let task of ds; trackBy: trackByIndex" class="task-row d-flex align-items-center gap-2 px-2 py-2" [ngClass]="task ? rowClass(task) : ''" [style.height.px]="rowHeight()">
+    <div *cdkVirtualFor="let task of ds; let i = index; trackBy: trackByIndex" class="task-row d-flex align-items-center gap-2 px-2 py-2" [ngClass]="task ? rowClass(task) : ''" [class.task-row-active]="i === highlighted()" [style.height.px]="rowHeight()" (click)="highlight(i)">
       @if (task) {
         <div class="flex-shrink-0 task-checks">
           <button type="button" class="btn btn-link p-0 lh-1 text-body" (click)="toggleTaskDone(task)" [attr.aria-pressed]="task.completed" title="Toggle done">
@@ -137,3 +140,5 @@
     <p class="text-muted text-center py-4 mb-0">No tasks match these filters.</p>
   }
 }
+
+<app-keyboard-shortcuts [(open)]="shortcutsOpen" [groups]="shortcutGroups" title="Task list shortcuts" />
