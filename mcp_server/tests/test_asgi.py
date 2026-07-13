@@ -5,10 +5,16 @@ runs the MCP session-manager lifespan. The session manager may only be started o
 so a single client is opened for the whole class.
 """
 
+import asyncio
+from urllib.parse import urlparse
+
 from django.conf import settings
 from django.test import SimpleTestCase
+from mcp.server.transport_security import TransportSecurityMiddleware
+from starlette.requests import HTTPConnection
 from starlette.testclient import TestClient
 
+from mcp_server.server import mcp
 from organizer.asgi import application
 
 
@@ -51,3 +57,31 @@ class ASGIDiscoveryTests(SimpleTestCase):
         prm = self.asgi.get("/.well-known/oauth-protected-resource/mcp").json()
         asm = self.asgi.get("/.well-known/oauth-authorization-server").json()
         self.assertEqual(asm["issuer"], prm["authorization_servers"][0])
+
+
+class TransportSecurityTests(SimpleTestCase):
+    """DNS-rebinding protection must admit the host we are actually reached on.
+
+    Only authenticated requests get this far — the bearer middleware rejects everything else
+    first — so the 401 tests above cannot catch a bad allow-list. Left to its own devices FastMCP
+    infers the allow-list from its *bind* host (loopback, behind the proxy) and answers every real
+    request with 421 "Invalid Host header".
+    """
+
+    def _reject_reason(self, host: str):
+        connection = HTTPConnection(
+            {
+                "type": "http",
+                "headers": [(b"host", host.encode()), (b"content-type", b"application/json")],
+            }
+        )
+        middleware = TransportSecurityMiddleware(mcp.settings.transport_security)
+        response = asyncio.run(middleware.validate_request(connection, is_post=True))
+        return None if response is None else response.status_code
+
+    def test_public_host_is_admitted(self):
+        self.assertIsNone(self._reject_reason(urlparse(settings.MCP_BASE_URL).netloc))
+
+    def test_foreign_host_is_still_rejected(self):
+        # The allow-list is widened to the public host, not disarmed.
+        self.assertEqual(self._reject_reason("attacker.example.com"), 421)
