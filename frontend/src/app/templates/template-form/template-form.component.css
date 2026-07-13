@@ -1,4 +1,73 @@
+:host {
+  display: block;
+}
+
+h1 {
+  font-family: var(--org-font-heading);
+  font-weight: 700;
+  margin-bottom: 20px;
+}
+
+/* The whole form sits on one elevated surface card. */
+form {
+  max-width: 900px;
+  padding: 24px;
+  background: var(--org-surface);
+  border: 1px solid var(--org-border);
+  border-radius: var(--org-radius);
+}
+
+/* "Recurrence" section heading. */
+h5 {
+  font-family: var(--org-font-heading);
+  font-weight: 600;
+  color: var(--org-text);
+}
+
+hr {
+  border-color: var(--org-border-subtle);
+  opacity: 1;
+}
+
+.form-label {
+  color: var(--org-text-muted);
+  font-weight: 600;
+  font-size: 0.8125rem;
+}
+
+.form-check-label {
+  color: var(--org-text-muted);
+}
+
+/* Inputs drop to the deeper canvas so they read against the card. */
+.form-control,
+.form-select {
+  background-color: var(--org-bg);
+  border-color: var(--org-border);
+  color: var(--org-text);
+}
+
+.form-control:focus,
+.form-select:focus {
+  background-color: var(--org-bg);
+  border-color: var(--org-accent);
+  box-shadow: 0 0 0 0.2rem rgba(183, 196, 255, 0.15);
+  color: var(--org-text);
+}
+
+/* The "day(s) / week(s)" suffix on the interval field. */
+.input-group-text {
+  background-color: var(--org-surface-2);
+  border-color: var(--org-border);
+  color: var(--org-text-muted);
+}
+
+small.text-muted {
+  color: var(--org-text-dim) !important;
+}
+
+/* Weekday toggles stay separate rounded buttons rather than a fused group. */
 .btn-group .btn {
-  border-radius: 0.25rem;
+  border-radius: var(--org-radius-sm);
   margin-right: 0.25rem;
 }

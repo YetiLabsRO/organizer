@@ -1,3 +1,47 @@
+:host {
+  display: block;
+}
+
+h1 {
+  font-family: var(--org-font-heading);
+  font-weight: 700;
+  margin-bottom: 20px;
+}
+
+.list-group {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+/* Each template is a surface card (override Bootstrap's border-0 utility). */
+.list-group-item {
+  background: var(--org-surface) !important;
+  border: 1px solid var(--org-border) !important;
+  border-radius: var(--org-radius) !important;
+  padding: 16px 20px;
+  transition: border-color 0.12s ease;
+}
+
+.list-group-item:hover {
+  border-color: var(--org-accent) !important;
+}
+
+.list-group-item a.fw-semibold {
+  color: var(--org-text);
+  font-size: 1.05rem;
+  text-decoration: none;
+}
+
+.list-group-item a.fw-semibold:hover {
+  color: var(--org-accent);
+}
+
+.list-group-item small {
+  color: var(--org-text-dim);
+}
+
 .tag {
   font-weight: 500;
+  border-radius: var(--org-radius-sm);
 }
