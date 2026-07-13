@@ -2,6 +2,7 @@ from datetime import date, timedelta
 
 from django.contrib.auth import get_user_model
 from django.test import TestCase
+from django.utils import timezone
 
 from tasks import recurrence
 from tasks.models import TaskItem, TaskTemplate
@@ -119,7 +120,10 @@ class MaterializeTests(TestCase):
         t = self._template(frequency=TaskTemplate.DAILY, start_on=date(2026, 1, 1))
         recurrence.materialize_due_tasks(t, date(2026, 1, 10))
         self.assertEqual(t.generated_tasks.count(), 1)
-        self.assertEqual(t.generated_tasks.get().end_date.date(), date(2026, 1, 10))
+        # The deadline is local midnight of the occurrence, so it has to be read back in local time:
+        # straight off the DB it is UTC, and west of the meridian that lands on the previous day.
+        due = timezone.localtime(t.generated_tasks.get().end_date)
+        self.assertEqual(due.date(), date(2026, 1, 10))
 
     def test_lead_time_brings_task_forward(self):
         # First occurrence Aug 1, 3-day lead time → eligible Jul 29, not Jul 28.

@@ -130,7 +130,13 @@ AUTH_PASSWORD_VALIDATORS = [
 
 LANGUAGE_CODE = 'en-us'
 
-TIME_ZONE = 'UTC'
+# The app's notion of a *day* is user-facing: the Today view, the stats period selector, and
+# recurring-task generation all key off `timezone.localdate()`, which resolves in TIME_ZONE. Running
+# in UTC therefore shifts every day boundary by the UTC offset — at UTC+3 the Today view rolled over
+# at 03:00 local, so between midnight and 3am it listed *yesterday's* completions, and a task
+# completed at 01:00 dropped off it at 03:00 the same day. Keep this on the timezone the user
+# actually lives in. Storage is unaffected: USE_TZ keeps every datetime in UTC in the database.
+TIME_ZONE = config("TIME_ZONE", default="Europe/Bucharest")
 
 USE_I18N = True
 

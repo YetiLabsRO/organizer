@@ -1,9 +1,11 @@
-from datetime import datetime, timedelta
+import zoneinfo
+from datetime import datetime, time, timedelta
 from io import StringIO
 
+from django.conf import settings
 from django.contrib.auth import get_user_model
 from django.core.management import call_command
-from django.test import TestCase
+from django.test import SimpleTestCase, TestCase, override_settings
 from django.utils import timezone
 from rest_framework.test import APITestCase
 
@@ -278,3 +280,57 @@ class BackfillTaskOwnerCommandTests(TestCase):
         call_command("backfill_task_owner", "--email", "me@example.com", "--apply", stdout=StringIO())
 
         self.assertEqual(TaskItem.objects.filter(owner=target).count(), 2)
+
+
+class TimezoneConfigTests(SimpleTestCase):
+    """The project must not draw its day boundary in UTC."""
+
+    def test_days_are_not_drawn_in_utc(self):
+        # The Today view, the stats periods and recurring-task generation all key off
+        # `timezone.localdate()`, which resolves in TIME_ZONE. Running in UTC shifts every day
+        # boundary by the UTC offset, so "today" stops meaning the user's today.
+        self.assertNotEqual(settings.TIME_ZONE, "UTC")
+
+
+@override_settings(TIME_ZONE="Europe/Bucharest")
+class TodayViewLocalDayTests(APITestCase):
+    """`today_view` spans the user's local day, not the UTC day.
+
+    Regression: with TIME_ZONE=UTC and the user at UTC+3, the view rolled over at 03:00 local. So
+    between midnight and 3am it listed *yesterday's* completions, and a task completed at 01:00
+    dropped out of it at 03:00 the same local day.
+    """
+
+    TZ = zoneinfo.ZoneInfo("Europe/Bucharest")
+
+    def setUp(self):
+        self.user = User.objects.create_user(username="owner", password="pw")
+        self.client.force_authenticate(self.user)
+
+    def completed_at(self, title, local_dt):
+        """A task completed at an exact local instant (`update` bypasses the completed_date monitor)."""
+        task = TaskItem.objects.create(title=title, completed=True, owner=self.user)
+        TaskItem.objects.filter(pk=task.pk).update(completed_date=local_dt)
+        return task
+
+    def test_today_view_spans_the_local_day(self):
+        today = timezone.localdate()
+        yesterday = today - timedelta(days=1)
+        # 00:30 local today is 21:30 UTC *yesterday* — the case that broke: in UTC days it falls out
+        # of "today" entirely, so this is what pins the boundary to the local day.
+        self.completed_at("00:30 today", datetime.combine(today, time(0, 30), tzinfo=self.TZ))
+        self.completed_at("23:30 yesterday", datetime.combine(yesterday, time(23, 30), tzinfo=self.TZ))
+
+        response = self.client.get("/api/task/?today_view=true")
+
+        self.assertEqual({t["title"] for t in response.data["results"]}, {"00:30 today"})
+
+    def test_completed_after_is_an_inclusive_local_day(self):
+        # The browser sends the period bounds as local dates; they must be read as local days too.
+        today = timezone.localdate()
+        self.completed_at("00:30 today", datetime.combine(today, time(0, 30), tzinfo=self.TZ))
+        self.completed_at("23:30 yesterday", datetime.combine(today - timedelta(days=1), time(23, 30), tzinfo=self.TZ))
+
+        response = self.client.get(f"/api/task/?completed_after={today:%Y-%m-%d}")
+
+        self.assertEqual({t["title"] for t in response.data["results"]}, {"00:30 today"})
