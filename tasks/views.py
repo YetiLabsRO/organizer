@@ -5,16 +5,18 @@ from rest_framework.decorators import action
 from rest_framework.exceptions import PermissionDenied, ValidationError
 from rest_framework.response import Response
 
+from tasks import recurrence
 from tasks.api.serializers import (
     ProjectSerializer,
     TagSerializer,
     TaskCommentSerializer,
     TaskListSerializer,
     TaskSerializer,
+    TaskTemplateSerializer,
 )
 from tasks.api.stats import VALID_BUCKETS, build_task_stats
 from tasks.filters import TaskFilterSet
-from tasks.models import Project, Tag, TaskComment, TaskItem
+from tasks.models import Project, Tag, TaskComment, TaskItem, TaskTemplate
 from tasks.pagination import TaskLimitOffsetPagination
 
 
@@ -60,6 +62,31 @@ class TaskItemViewSet(viewsets.ModelViewSet):
         ids = list(filtered.values_list("id", flat=True).distinct())
         base = TaskItem.objects.filter(id__in=ids)
         return Response(build_task_stats(base, bucket))
+
+
+class TaskTemplateViewSet(viewsets.ModelViewSet):
+    queryset = TaskTemplate.objects.all()
+    serializer_class = TaskTemplateSerializer
+
+    def get_queryset(self):
+        # Owner-scoped, like tasks — a personal organizer only shows your own templates.
+        return super().get_queryset().filter(owner=self.request.user)
+
+    def perform_create(self, serializer):
+        serializer.save(owner=self.request.user)
+
+    @action(detail=True, methods=["post"], url_path="run")
+    def run(self, request, pk=None):
+        """Generate this template's currently-due task immediately.
+
+        An explicit manual action, so it overrides ``skip_if_previous_open``. Returns the created
+        task (201) or 200 with ``{"detail": ...}`` when nothing is currently due.
+        """
+        template = self.get_object()
+        task = recurrence.materialize_due_tasks(template, ignore_skip_if_open=True)
+        if task is None:
+            return Response({"detail": "Nothing due to generate for this template."})
+        return Response(TaskSerializer(task).data, status=201)
 
 
 class TagViewSet(viewsets.ModelViewSet):

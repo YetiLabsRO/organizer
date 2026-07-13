@@ -215,10 +215,9 @@ CORS_ALLOWED_ORIGINS = config(
 )
 
 
-# --- MCP server + OAuth 2.1 authorization server -----------------------------------------
 # python-decouple keeps everything after `=` as the value (including any trailing `# comment`),
-# so sanitize before use — this tolerates a stray inline comment or whitespace in a
-# hand-edited .env instead of crashing on import (e.g. `OAUTH_ACCESS_TOKEN_TTL=28800  # 8h`).
+# so sanitize before casting — this tolerates a stray inline comment or whitespace in a hand-edited
+# .env instead of crashing on import (e.g. `RECURRING_TASKS_HOUR=6  # 6am`).
 def _strip_inline_comment(value):
     return str(value).split("#", 1)[0].strip()
 
@@ -226,6 +225,28 @@ def _strip_inline_comment(value):
 def _env_int(key, default):
     return config(key, default=default, cast=lambda v: int(_strip_inline_comment(v)))
 
+
+# Celery — drives recurring-task generation via celery beat. The broker is Redis by default.
+# The REST API does not require Celery; only automatic task generation depends on it. Generation can
+# always be run manually with `manage.py generate_recurring_tasks` if the broker is unavailable.
+from celery.schedules import crontab  # noqa: E402
+
+CELERY_BROKER_URL = config("CELERY_BROKER_URL", default="redis://localhost:6379/0")
+CELERY_RESULT_BACKEND = config("CELERY_RESULT_BACKEND", default="")
+CELERY_TIMEZONE = TIME_ZONE
+CELERY_BEAT_SCHEDULE = {
+    "generate-recurring-tasks": {
+        "task": "tasks.generate_recurring_tasks",
+        # Daily at a configurable hour (local CELERY_TIMEZONE). Sanitized so a stray inline comment
+        # in .env (e.g. `RECURRING_TASKS_HOUR=6  # 6am`) doesn't crash the worker/beat on startup.
+        "schedule": crontab(minute=0, hour=_env_int("RECURRING_TASKS_HOUR", 6)),
+    },
+}
+
+
+# --- MCP server + OAuth 2.1 authorization server -----------------------------------------
+# (_strip_inline_comment / _env_int are defined above, near the Celery config — they tolerate a
+# stray inline comment in a hand-edited .env, e.g. `OAUTH_ACCESS_TOKEN_TTL=28800  # 8h`.)
 
 # Public, externally-reachable base URL of this deployment. It anchors the OAuth issuer and
 # the MCP resource identifier advertised in discovery metadata, so it MUST match the URL the

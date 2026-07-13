@@ -3,12 +3,20 @@ from django.urls import include, path
 from rest_framework.routers import DefaultRouter
 
 from mcp_server.oauth_views import RegisterClientView, authorization_server_metadata
-from tasks.views import MainAppView, ProjectViewSet, TagViewSet, TaskCommentViewSet, TaskItemViewSet
+from tasks.views import (
+    MainAppView,
+    ProjectViewSet,
+    TagViewSet,
+    TaskCommentViewSet,
+    TaskItemViewSet,
+    TaskTemplateViewSet,
+)
 
 admin.autodiscover()
 
 router = DefaultRouter()
 router.register(r'task', TaskItemViewSet)
+router.register(r'template', TaskTemplateViewSet)
 router.register(r'tag', TagViewSet)
 router.register(r'project', ProjectViewSet)
 router.register(r'comments', TaskCommentViewSet)
