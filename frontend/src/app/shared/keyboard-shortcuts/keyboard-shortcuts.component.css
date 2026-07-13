@@ -1,0 +1,126 @@
+:host {
+  display: contents;
+}
+
+.ks-scrim {
+  position: fixed;
+  inset: 0;
+  z-index: 1050;
+  background: rgba(0, 0, 0, 0.55);
+}
+
+.ks-panel {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  z-index: 1055;
+  width: min(560px, calc(100vw - 32px));
+  max-height: min(80dvh, 720px);
+  display: flex;
+  flex-direction: column;
+  background: var(--org-surface);
+  border: 1px solid var(--org-border);
+  border-radius: var(--org-radius);
+  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.55);
+}
+
+.ks-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 20px;
+  border-bottom: 1px solid var(--org-border-subtle);
+  flex-shrink: 0;
+}
+
+.ks-title {
+  margin: 0;
+  font-family: var(--org-font-heading);
+  font-weight: 700;
+  font-size: 1.125rem;
+  color: var(--org-text);
+}
+
+.ks-close {
+  display: flex;
+  padding: 4px;
+  border: 0;
+  border-radius: var(--org-radius-sm);
+  background: transparent;
+  color: var(--org-text-dim);
+  line-height: 1;
+}
+
+.ks-close:hover {
+  background: var(--org-surface-2);
+  color: var(--org-text);
+}
+
+.ks-body {
+  padding: 8px 20px 20px;
+  overflow-y: auto;
+}
+
+/* The group title carries the whole gap between groups — don't also margin the section, or the
+   spacing doubles and the panel needlessly outgrows the viewport. */
+.ks-group-title {
+  margin: 18px 0 6px;
+  font-size: 0.6875rem;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--org-text-dim);
+}
+
+.ks-list {
+  margin: 0;
+}
+
+.ks-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 6px 0;
+  border-bottom: 1px solid var(--org-border-subtle);
+}
+
+.ks-item:last-child {
+  border-bottom: 0;
+}
+
+/* Keys column is fixed-width so the labels line up down the panel. */
+.ks-keys {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  flex: 0 0 118px;
+  margin: 0;
+  font-weight: 400;
+}
+
+.ks-key {
+  min-width: 24px;
+  padding: 2px 7px;
+  border: 1px solid var(--org-border);
+  border-bottom-width: 2px;
+  border-radius: var(--org-radius-sm);
+  background: var(--org-surface-2);
+  box-shadow: none;
+  color: var(--org-text);
+  font-family: var(--org-font);
+  font-size: 0.75rem;
+  line-height: 1.4;
+  text-align: center;
+}
+
+.ks-plus {
+  color: var(--org-text-dim);
+  font-size: 0.75rem;
+}
+
+.ks-label {
+  margin: 0;
+  color: var(--org-text-muted);
+  font-size: 0.875rem;
+}

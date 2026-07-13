@@ -67,6 +67,11 @@ export class TaskDataSource extends DataSource<Task | undefined> {
     this.fetchRange(this.lastRange);
   }
 
+  /** The task at `index`, or `undefined` while its page is still loading (or out of bounds). */
+  taskAt(index: number): Task | undefined {
+    return index >= 0 ? this.cachedData[index] : undefined;
+  }
+
   /** Replace a task in place (e.g. after toggling it, when it stays in view). */
   replace(task: Task): void {
     const index = this.cachedData.findIndex((t) => t?.id === task.id);

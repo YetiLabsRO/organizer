@@ -44,6 +44,13 @@
   background: rgba(255, 255, 255, 0.03);
 }
 
+/* The keyboard cursor — the row the shortcuts act on. A wash plus an inset ring, so it reads as
+   selected without touching the left border, which is spoken for by the priority accent. */
+.task-row.task-row-active {
+  background: var(--org-primary-soft);
+  box-shadow: inset 0 0 0 1px var(--org-accent);
+}
+
 /* Priority accent bar (left border). Neutral priority is intentionally unmarked. */
 .task-row.priority-high {
   border-left-color: var(--org-danger);
