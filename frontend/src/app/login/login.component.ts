@@ -45,7 +45,7 @@ export class LoginComponent {
         .subscribe({
           complete: () => {
             this.processing.set(false);
-            this.router.navigate(['tasks']);
+            this.router.navigate(['tasks/focus']);
           }
         });
     } else {

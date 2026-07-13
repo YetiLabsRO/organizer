@@ -104,11 +104,9 @@
   }
 </div>
 
-<!-- Floating action button: opens the Create Task drawer -->
+<!-- Floating action button: opens the shared Create Task drawer -->
 <button type="button" class="focus-fab" (click)="openCreate()" aria-label="Create task">
   <svg class="bi" width="22" height="22" role="img" aria-hidden="true">
     <use xlink:href="bootstrap-icons/bootstrap-icons.svg#plus"></use>
   </svg>
 </button>
-
-<app-task-create-drawer [(open)]="drawerOpen" (created)="onCreated()" />

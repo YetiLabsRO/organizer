@@ -11,7 +11,7 @@ import { ProjectDetailComponent } from './projects/project-details/project-detai
 import { ProjectFormComponent } from './projects/project-form/project-form.component';
 
 export const routes: Routes = [
-  { path: '', redirectTo: '/tasks', pathMatch: 'full' },
+  { path: '', redirectTo: '/tasks/focus', pathMatch: 'full' },
   { path: 'login', component: LoginComponent },
   { path: 'tasks', component: TaskListComponent, canActivate: [AuthenticatedGuard] },
   {

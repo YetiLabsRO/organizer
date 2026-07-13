@@ -9,7 +9,8 @@ import { Tag } from '../../tags/tag';
 import { TagColorPipe } from '../../tags/tag-color.pipe';
 import { ProjectService } from '../../projects/project.service';
 import { TaskFilters } from '../task-filters';
-import { TaskCreateDrawerComponent } from '../task-create-drawer/task-create-drawer.component';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import { TaskDrawerService } from '../task-drawer.service';
 import {
   DeadlineInfo, PriorityFlag, deadlineInfo, listStatusMeta, priorityFlag,
   PRIORITY_HIGH, PRIORITY_LOW,
@@ -42,7 +43,7 @@ const FETCH_LIMIT = 500;
  */
 @Component({
   selector: 'app-priority-focus-list',
-  imports: [RouterLink, TagColorPipe, TaskCreateDrawerComponent],
+  imports: [RouterLink, TagColorPipe],
   templateUrl: './priority-focus-list.component.html',
   styleUrls: ['./priority-focus-list.component.css'],
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -51,6 +52,7 @@ export class PriorityFocusListComponent implements OnInit {
   private readonly taskService = inject(TaskService);
   private readonly tagService = inject(TagService);
   private readonly projectService = inject(ProjectService);
+  private readonly drawer = inject(TaskDrawerService);
 
   readonly bandDefs = BANDS;
 
@@ -63,7 +65,6 @@ export class PriorityFocusListComponent implements OnInit {
   private readonly tagsById = computed(() => new Map(this.tags().map((t) => [t.id, t])));
   private readonly projectNames = signal<Map<number, string>>(new Map());
 
-  readonly drawerOpen = signal(false);
   readonly collapsed = signal<Record<BandId, boolean>>({
     urgent: false, high: false, normal: true, low: true,
   });
@@ -90,6 +91,11 @@ export class PriorityFocusListComponent implements OnInit {
   /** Stat-tile bar width as a percentage, scaled against the largest of the three tiles. */
   barWidth(n: number): number {
     return n <= 0 ? 0 : Math.max(6, Math.round((n / this.maxTile()) * 100));
+  }
+
+  constructor() {
+    // Reload when a task is created via the shared drawer (sidebar "New Task" or the FAB).
+    this.drawer.created$.pipe(takeUntilDestroyed()).subscribe(() => this.load());
   }
 
   ngOnInit(): void {
@@ -202,11 +208,6 @@ export class PriorityFocusListComponent implements OnInit {
   }
 
   openCreate(): void {
-    this.drawerOpen.set(true);
-  }
-
-  /** A task was created in the drawer — refresh the current view so it appears in its band. */
-  onCreated(): void {
-    this.load();
+    this.drawer.openDrawer();
   }
 }

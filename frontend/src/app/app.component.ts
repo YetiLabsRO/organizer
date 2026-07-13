@@ -3,10 +3,12 @@ import { NavigationEnd, Router, RouterLink, RouterLinkActive, RouterOutlet } fro
 import { filter } from 'rxjs/operators';
 
 import { AuthService } from './auth.service';
+import { TaskCreateDrawerComponent } from './tasks/task-create-drawer/task-create-drawer.component';
+import { TaskDrawerService } from './tasks/task-drawer.service';
 
 @Component({
   selector: 'app-root',
-  imports: [RouterLink, RouterLinkActive, RouterOutlet],
+  imports: [RouterLink, RouterLinkActive, RouterOutlet, TaskCreateDrawerComponent],
   templateUrl: './app.component.html',
   styleUrls: ['./app.component.css'],
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -14,6 +16,7 @@ import { AuthService } from './auth.service';
 export class AppComponent implements OnInit {
   private readonly authService = inject(AuthService);
   private readonly router = inject(Router);
+  readonly drawer = inject(TaskDrawerService);
 
   readonly currentUser = this.authService.currentUser;
   readonly loggedIn = this.authService.loggedIn;

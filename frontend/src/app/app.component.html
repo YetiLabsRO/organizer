@@ -18,6 +18,11 @@
       <span class="brand-sub">MISSION CONTROL</span>
     </a>
 
+    <button type="button" class="sidebar-new-task" (click)="drawer.openDrawer()">
+      <svg class="bi" width="16" height="16" role="img" aria-hidden="true"><use xlink:href="bootstrap-icons/bootstrap-icons.svg#plus-lg"></use></svg>
+      <span>New Task</span>
+    </button>
+
     <nav class="sidebar-nav" aria-label="Primary">
       <a class="nav-link" routerLink="/tasks/focus" routerLinkActive="active">
         <svg class="bi" width="17" height="17" role="img" aria-hidden="true"><use xlink:href="bootstrap-icons/bootstrap-icons.svg#bullseye"></use></svg>
@@ -61,3 +66,7 @@
     <router-outlet></router-outlet>
   </main>
 </div>
+
+<!-- Single app-wide Create Task drawer, opened from the sidebar or a list FAB. -->
+<app-task-create-drawer [open]="drawer.open()" (openChange)="drawer.open.set($event)"
+                        (created)="drawer.notifyCreated($event)" />

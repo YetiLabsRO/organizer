@@ -43,6 +43,28 @@
   color: var(--org-text-dim);
 }
 
+.sidebar-new-task {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  width: 100%;
+  margin-bottom: 16px;
+  padding: 10px 12px;
+  border: 0;
+  border-radius: var(--org-radius-sm);
+  background: var(--org-primary-soft);
+  color: var(--org-accent);
+  font-size: 0.9375rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background-color 0.12s ease;
+}
+
+.sidebar-new-task:hover {
+  background: rgba(0, 82, 255, 0.32);
+}
+
 .sidebar-nav {
   display: flex;
   flex-direction: column;
