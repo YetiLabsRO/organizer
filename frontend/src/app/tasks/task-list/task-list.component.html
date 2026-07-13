@@ -36,9 +36,9 @@
 
 @if (dataSource(); as ds) {
   <cdk-virtual-scroll-viewport [itemSize]="rowHeight()" class="task-viewport" minBufferPx="720" maxBufferPx="1440">
-    <div *cdkVirtualFor="let task of ds; trackBy: trackByIndex" class="task-row d-flex align-items-start gap-2 px-2 py-2" [ngClass]="task ? rowClass(task) : ''" [style.height.px]="rowHeight()">
+    <div *cdkVirtualFor="let task of ds; trackBy: trackByIndex" class="task-row d-flex align-items-center gap-2 px-2 py-2" [ngClass]="task ? rowClass(task) : ''" [style.height.px]="rowHeight()">
       @if (task) {
-        <div class="flex-shrink-0 task-checks pt-1">
+        <div class="flex-shrink-0 task-checks">
           <button type="button" class="btn btn-link p-0 lh-1 text-body" (click)="toggleTaskDone(task)" [attr.aria-pressed]="task.completed" title="Toggle done">
             <svg class="bi" width="18" height="18" role="img" aria-label="Done">
               @if (!task.completed) {
@@ -125,7 +125,7 @@
           </button>
         </div>
       } @else {
-        <div class="flex-grow-1 placeholder-glow pt-1">
+        <div class="flex-grow-1 placeholder-glow">
           <span class="placeholder col-6 rounded"></span>
           <span class="placeholder placeholder-sm col-4 rounded d-block mt-2"></span>
         </div>

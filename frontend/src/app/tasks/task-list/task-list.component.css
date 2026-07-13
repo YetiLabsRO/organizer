@@ -112,12 +112,16 @@
   gap: 0.2rem;
 }
 
-/* Tags column: capped width, wrapping badges, hidden on small screens. */
+/* Tags column: capped width, wrapping badges, hidden on small screens.
+   align-content centres wrapped rows of pills within the fixed-height row, so the
+   tags sit on the same optical centre line as the title, checkbox and actions. */
 .task-tags {
   max-width: 42%;
   gap: 0.3rem;
   overflow: hidden;
   max-height: 3.4rem;
+  align-items: center;
+  align-content: center;
 }
 
 /* Title: single-line ellipsis on desktop; wraps to two lines on mobile so more is readable. */

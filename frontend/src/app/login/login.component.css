@@ -68,11 +68,8 @@
   color: var(--org-text-muted);
 }
 
+/* Colours come from the global semantic button palette; only the shape differs here. */
 .auth-card .btn-primary {
-  --bs-btn-bg: var(--org-primary);
-  --bs-btn-border-color: var(--org-primary);
-  --bs-btn-hover-bg: #1a63ff;
-  --bs-btn-hover-border-color: #1a63ff;
   font-weight: 600;
   padding-block: 0.5rem;
   margin-top: 4px;

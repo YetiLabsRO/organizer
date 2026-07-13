@@ -21,11 +21,27 @@
   --org-accent: #b7c4ff;      /* periwinkle — brand, links, active nav */
   --org-primary: #0052ff;     /* action blue */
   --org-primary-soft: rgba(0, 82, 255, 0.2);
+  --org-primary-hover: #1a63ff;
+  --org-primary-active: #0044d6;
 
+  /* Semantic pairs: a soft fill with dark "ink" on top — the treatment the Figma
+     uses for the urgent badge, extended to the rest of the semantic scale. */
   --org-danger: #ffb4ab;      /* urgent / overdue text + badge bg */
   --org-danger-ink: #690005;  /* text on the danger badge */
+  --org-danger-hover: #ffc9c2;
   --org-danger-tint: rgba(147, 0, 10, 0.1);   /* urgent group header wash */
   --org-danger-edge: rgba(255, 180, 171, 0.2);
+
+  --org-success: #7ee2a8;
+  --org-success-ink: #00391f;
+  --org-success-hover: #9aecbc;
+
+  --org-warning: #ffd7a8;     /* also the "due soon" deadline colour */
+  --org-warning-ink: #4a2800;
+  --org-warning-hover: #ffe4c4;
+
+  --org-info: #a5d8ff;
+  --org-info-ink: #062b45;
 
   --org-chart: #b7c8e1;
   --org-chart-muted: rgba(183, 200, 225, 0.2);
@@ -78,6 +94,163 @@ body {
 .bi {
   vertical-align: -.125em;
   fill: currentColor;
+}
+
+/* ---------------------------------------------------------------------------
+   Semantic buttons. Bootstrap compiles each .btn-* variant's colours into its own
+   --bs-btn-* custom properties, so overriding the theme colours (--bs-primary etc.)
+   does NOT retint the buttons — each variant has to be remapped explicitly. Solid
+   variants use the soft-fill + dark-ink pairing from the design tokens; outline
+   variants stay quiet (token border, coloured text) and fill in on hover, which is
+   what the list filter toggles and destructive actions want.
+   --------------------------------------------------------------------------- */
+[data-bs-theme="dark"] .btn-primary {
+  --bs-btn-color: #fff;
+  --bs-btn-bg: var(--org-primary);
+  --bs-btn-border-color: var(--org-primary);
+  --bs-btn-hover-color: #fff;
+  --bs-btn-hover-bg: var(--org-primary-hover);
+  --bs-btn-hover-border-color: var(--org-primary-hover);
+  --bs-btn-active-color: #fff;
+  --bs-btn-active-bg: var(--org-primary-active);
+  --bs-btn-active-border-color: var(--org-primary-active);
+  --bs-btn-disabled-color: #fff;
+  --bs-btn-disabled-bg: var(--org-primary);
+  --bs-btn-disabled-border-color: var(--org-primary);
+}
+
+[data-bs-theme="dark"] .btn-outline-primary {
+  --bs-btn-color: var(--org-accent);
+  --bs-btn-border-color: var(--org-border);
+  --bs-btn-hover-color: #fff;
+  --bs-btn-hover-bg: var(--org-primary);
+  --bs-btn-hover-border-color: var(--org-primary);
+  --bs-btn-active-color: #fff;
+  --bs-btn-active-bg: var(--org-primary);
+  --bs-btn-active-border-color: var(--org-primary);
+  --bs-btn-disabled-color: var(--org-text-dim);
+  --bs-btn-disabled-border-color: var(--org-border);
+}
+
+[data-bs-theme="dark"] .btn-secondary {
+  --bs-btn-color: var(--org-text);
+  --bs-btn-bg: var(--org-surface-2);
+  --bs-btn-border-color: var(--org-border);
+  --bs-btn-hover-color: var(--org-text);
+  --bs-btn-hover-bg: var(--org-border);
+  --bs-btn-hover-border-color: var(--org-border);
+  --bs-btn-active-color: var(--org-text);
+  --bs-btn-active-bg: var(--org-border);
+  --bs-btn-active-border-color: var(--org-border);
+  --bs-btn-disabled-color: var(--org-text-dim);
+  --bs-btn-disabled-bg: var(--org-surface-2);
+  --bs-btn-disabled-border-color: var(--org-border);
+}
+
+[data-bs-theme="dark"] .btn-outline-secondary {
+  --bs-btn-color: var(--org-text-muted);
+  --bs-btn-border-color: var(--org-border);
+  --bs-btn-hover-color: var(--org-text);
+  --bs-btn-hover-bg: var(--org-surface-2);
+  --bs-btn-hover-border-color: var(--org-border);
+  --bs-btn-active-color: var(--org-text);
+  --bs-btn-active-bg: var(--org-surface-2);
+  --bs-btn-active-border-color: var(--org-border);
+  --bs-btn-disabled-color: var(--org-text-dim);
+  --bs-btn-disabled-border-color: var(--org-border);
+}
+
+[data-bs-theme="dark"] .btn-success {
+  --bs-btn-color: var(--org-success-ink);
+  --bs-btn-bg: var(--org-success);
+  --bs-btn-border-color: var(--org-success);
+  --bs-btn-hover-color: var(--org-success-ink);
+  --bs-btn-hover-bg: var(--org-success-hover);
+  --bs-btn-hover-border-color: var(--org-success-hover);
+  --bs-btn-active-color: var(--org-success-ink);
+  --bs-btn-active-bg: var(--org-success-hover);
+  --bs-btn-active-border-color: var(--org-success-hover);
+  --bs-btn-disabled-color: var(--org-success-ink);
+  --bs-btn-disabled-bg: var(--org-success);
+  --bs-btn-disabled-border-color: var(--org-success);
+}
+
+[data-bs-theme="dark"] .btn-outline-success {
+  --bs-btn-color: var(--org-success);
+  --bs-btn-border-color: var(--org-border);
+  --bs-btn-hover-color: var(--org-success-ink);
+  --bs-btn-hover-bg: var(--org-success);
+  --bs-btn-hover-border-color: var(--org-success);
+  --bs-btn-active-color: var(--org-success-ink);
+  --bs-btn-active-bg: var(--org-success);
+  --bs-btn-active-border-color: var(--org-success);
+  --bs-btn-disabled-color: var(--org-text-dim);
+  --bs-btn-disabled-border-color: var(--org-border);
+}
+
+[data-bs-theme="dark"] .btn-danger {
+  --bs-btn-color: var(--org-danger-ink);
+  --bs-btn-bg: var(--org-danger);
+  --bs-btn-border-color: var(--org-danger);
+  --bs-btn-hover-color: var(--org-danger-ink);
+  --bs-btn-hover-bg: var(--org-danger-hover);
+  --bs-btn-hover-border-color: var(--org-danger-hover);
+  --bs-btn-active-color: var(--org-danger-ink);
+  --bs-btn-active-bg: var(--org-danger-hover);
+  --bs-btn-active-border-color: var(--org-danger-hover);
+  --bs-btn-disabled-color: var(--org-danger-ink);
+  --bs-btn-disabled-bg: var(--org-danger);
+  --bs-btn-disabled-border-color: var(--org-danger);
+}
+
+[data-bs-theme="dark"] .btn-outline-danger {
+  --bs-btn-color: var(--org-danger);
+  --bs-btn-border-color: var(--org-border);
+  --bs-btn-hover-color: var(--org-danger-ink);
+  --bs-btn-hover-bg: var(--org-danger);
+  --bs-btn-hover-border-color: var(--org-danger);
+  --bs-btn-active-color: var(--org-danger-ink);
+  --bs-btn-active-bg: var(--org-danger);
+  --bs-btn-active-border-color: var(--org-danger);
+  --bs-btn-disabled-color: var(--org-text-dim);
+  --bs-btn-disabled-border-color: var(--org-border);
+}
+
+[data-bs-theme="dark"] .btn-warning {
+  --bs-btn-color: var(--org-warning-ink);
+  --bs-btn-bg: var(--org-warning);
+  --bs-btn-border-color: var(--org-warning);
+  --bs-btn-hover-color: var(--org-warning-ink);
+  --bs-btn-hover-bg: var(--org-warning-hover);
+  --bs-btn-hover-border-color: var(--org-warning-hover);
+  --bs-btn-active-color: var(--org-warning-ink);
+  --bs-btn-active-bg: var(--org-warning-hover);
+  --bs-btn-active-border-color: var(--org-warning-hover);
+  --bs-btn-disabled-color: var(--org-warning-ink);
+  --bs-btn-disabled-bg: var(--org-warning);
+  --bs-btn-disabled-border-color: var(--org-warning);
+}
+
+[data-bs-theme="dark"] .btn-link {
+  --bs-btn-color: var(--org-accent);
+  --bs-btn-hover-color: #dfe3ff;
+}
+
+/* Status badges (task list/detail) use the same semantic pairs so a "Blocked" chip
+   and a destructive button read as the same red, not two different reds. */
+[data-bs-theme="dark"] .text-bg-danger {
+  background-color: var(--org-danger) !important;
+  color: var(--org-danger-ink) !important;
+}
+
+[data-bs-theme="dark"] .text-bg-info {
+  background-color: var(--org-info) !important;
+  color: var(--org-info-ink) !important;
+}
+
+[data-bs-theme="dark"] .text-bg-secondary {
+  background-color: var(--org-surface-2) !important;
+  color: var(--org-text-muted) !important;
 }
 
 /* ng-bootstrap datepicker (project-form) — its popup ships its own light styling and
