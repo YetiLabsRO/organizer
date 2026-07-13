@@ -52,7 +52,7 @@ cryptography==49.0.0
     #   pyjwt
 dj-rest-auth==7.2.0
     # via organizer
-django==6.0.6
+django==6.0.7
     # via
     #   dj-rest-auth
     #   django-cors-headers
