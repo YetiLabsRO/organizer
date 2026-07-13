@@ -1,3 +1,51 @@
+/* ===================================================================== */
+/*  Redesign shell: display heading, one elevated card, dark inputs.     */
+/*  (The DAG/segmented controls below are already Bootstrap-token based, */
+/*   so they follow the dark theme without change.)                      */
+/* ===================================================================== */
+
+:host h1 {
+  font-family: var(--org-font-heading);
+  font-weight: 700;
+}
+
+/* The whole editor — fields, comments, metadata — sits on one surface card.
+   `margin: 0` cancels Bootstrap's negative row gutters so the card wraps cleanly. */
+.detail-card {
+  margin: 0;
+  padding: 16px;
+  background: var(--org-surface);
+  border: 1px solid var(--org-border);
+  border-radius: var(--org-radius);
+}
+
+.detail-card .form-label {
+  color: var(--org-text-muted);
+  font-weight: 600;
+  font-size: 0.8125rem;
+}
+
+/* Inputs drop to the deeper canvas so they read against the card. */
+.detail-card .form-control {
+  background-color: var(--org-bg);
+  border-color: var(--org-border);
+  color: var(--org-text);
+}
+
+.detail-card .form-control:focus {
+  background-color: var(--org-bg);
+  border-color: var(--org-accent);
+  box-shadow: 0 0 0 0.2rem rgba(183, 196, 255, 0.15);
+  color: var(--org-text);
+}
+
+/* Delete-confirm modal on the surface colour. */
+.modal-content {
+  background: var(--org-surface);
+  border: 1px solid var(--org-border);
+  border-radius: var(--org-radius);
+}
+
 .description-editor {
   min-height: 16rem;
   font-family: var(--bs-font-monospace);

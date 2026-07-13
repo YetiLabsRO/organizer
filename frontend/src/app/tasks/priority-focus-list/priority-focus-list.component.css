@@ -301,11 +301,7 @@
   text-align: right;
 }
 
-/* --- Quick add + FAB ------------------------------------------------------ */
-.focus-quick-add {
-  display: block;
-}
-
+/* --- FAB ------------------------------------------------------------------ */
 .focus-loading,
 .focus-empty {
   text-align: center;
@@ -334,12 +330,6 @@
 
 .focus-fab:hover {
   transform: translateY(-2px);
-}
-
-.focus-fab.active {
-  background: var(--org-surface-2);
-  color: var(--org-accent);
-  transform: rotate(45deg);
 }
 
 /* --- Responsive ----------------------------------------------------------- */

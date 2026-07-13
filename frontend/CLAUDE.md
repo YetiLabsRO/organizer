@@ -8,9 +8,29 @@ Angular single-page app for Organizer. Consumes the Django REST API at the repo 
   `OnPush` change detection and signals for state; templates use `@if`/`@for` control flow.
   Note: Angular 22 is newer but requires Node ≥ 22.22; this app targets 21 to run on Node 20.
 - Build: `@angular/build:application` builder (see `angular.json`).
-- UI: ng-bootstrap + Bootstrap 5 + Angular Material (indigo-pink theme), ngx-chips (tag input),
+- UI: ng-bootstrap + Bootstrap 5 (dark theme — see **Design system** below), ngx-chips (tag input),
   ngx-color-picker. PWA via `@angular/service-worker` (`ngsw-config.json`).
+  Angular **Material is not used** — only `@angular/cdk` (virtual scroll, `BreakpointObserver`).
 - RxJS 7, TypeScript 5.9, zone.js.
+
+## Design system — "Mission Control" (dark)
+
+The app ships a single dark theme derived from the Figma redesign. Tokens live in `src/styles.css`
+as `--org-*` custom properties (bg / surface / border / text / accent / primary / danger, radii,
+fonts) and are mapped onto Bootstrap's dark theme vars (`<html data-bs-theme="dark">`), so the
+Bootstrap-built pages inherit the palette for free. **Build new UI from the `--org-*` tokens, not
+raw hex.**
+
+- **Shell** — left sidebar (`app.component`) with a global "New Task" button. `/login` is a "bare"
+  route: the shell chrome hides and it renders full-screen.
+- **Landing** — `/tasks/focus` (`PriorityFocusListComponent`): tasks grouped into priority bands
+  (overdue → high → normal → low) with stat tiles.
+- **Task creation** — one app-wide `TaskCreateDrawerComponent`, mounted in the shell and opened
+  from anywhere via `TaskDrawerService` (`openDrawer()`; lists refresh off `created$`).
+- **Charts** — Chart.js is themed globally in `chart-canvas.component.ts`; canvas can't inherit CSS,
+  so tick/legend/grid colours are set from the tokens there.
+- **Third-party widgets** — the ng-bootstrap datepicker and ngx-chips tag input ship light internals
+  and are re-skinned for dark in `src/styles.css`.
 
 ## Commands
 ```bash
