@@ -201,6 +201,9 @@ export class TaskListComponent implements OnInit, OnDestroy {
       title: request.title,
       for_today: this.filters()['today'],
       project: request.project,
+      // Only set when the shortcut syntax asked for it, so the backend defaults still apply.
+      priority: request.priority,
+      end_date: request.endDate,
       tags: [],
       _tags: request.tags,
     };

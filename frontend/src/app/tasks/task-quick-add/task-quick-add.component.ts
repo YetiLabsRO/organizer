@@ -6,11 +6,14 @@ import { Project } from '../../projects/project';
 import { Tag } from '../../tags/tag';
 import { SuggestionListComponent, Suggestion } from '../../shared/autocomplete/suggestion-list.component';
 import { tagTextColor } from '../../shared/tag-color.util';
+import { QuickAddParse, parseQuickAdd, stripTokens } from '../quick-add-parse';
 
 export interface NewTaskRequest {
   title: string;
   tags: Tag[];
   project?: number;
+  priority?: number;
+  endDate?: Date;
 }
 
 type Trigger = '#' | '@';
@@ -132,20 +135,24 @@ export class TaskQuickAddComponent {
     const raw = this.text().trim();
     if (!raw) return;
 
-    const tagSlugs = [...raw.matchAll(/(?:^|\s)#([\w-]+)/g)].map((m) => m[1]);
-    const projectSlug = raw.match(/(?:^|\s)@([\w-]+)/)?.[1];
-    const title = raw.replace(/(?:^|\s)[#@][\w-]+/g, ' ').replace(/\s+/g, ' ').trim();
-    if (!title) return;
+    const parsed = parseQuickAdd(raw);
 
-    const project = projectSlug ? this.projects.find((p) => p.slug === projectSlug)?.id : undefined;
+    // A project token only counts if it names a real project; otherwise it stays as text.
+    const project = parsed.projectSlug
+      ? this.projects.find((p) => p.slug.toLowerCase() === parsed.projectSlug!.toLowerCase())
+      : undefined;
 
-    if (tagSlugs.length === 0) {
-      this.emit(title, [], project);
+    if (parsed.tagSlugs.length === 0) {
+      this.emit(parsed, [], [], project?.id, project?.slug);
       return;
     }
-    forkJoin(tagSlugs.map((slug) => this.tagService.getTagBySlug(slug))).subscribe((groups) => {
+
+    // Resolve every #tag before building the title: only the ones that exist get stripped,
+    // so an unknown #tag survives as literal text instead of vanishing from the task.
+    forkJoin(parsed.tagSlugs.map((slug) => this.tagService.getTagBySlug(slug))).subscribe((groups) => {
       const tags = groups.flatMap((found) => (found.length ? [found[0]] : []));
-      this.emit(title, tags, project);
+      const resolvedSlugs = parsed.tagSlugs.filter((_, i) => groups[i].length > 0);
+      this.emit(parsed, tags, resolvedSlugs, project?.id, project?.slug);
     });
   }
 
@@ -156,8 +163,24 @@ export class TaskQuickAddComponent {
     this.trigger = null;
   }
 
-  private emit(title: string, tags: Tag[], project?: number): void {
-    this.create.emit({ title, tags, project });
+  /** Build the final title from the tokens that actually resolved, then emit. */
+  private emit(
+    parsed: QuickAddParse,
+    tags: Tag[],
+    resolvedTagSlugs: string[],
+    projectId?: number,
+    projectSlug?: string,
+  ): void {
+    const title = stripTokens(parsed.text, resolvedTagSlugs, projectSlug);
+    if (!title) return;
+
+    this.create.emit({
+      title,
+      tags,
+      project: projectId,
+      priority: parsed.priority,
+      endDate: parsed.endDate,
+    });
     this.text.set('');
     this.closeDropdown();
   }
