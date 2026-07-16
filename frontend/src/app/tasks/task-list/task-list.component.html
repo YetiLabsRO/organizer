@@ -85,7 +85,7 @@
               </span>
             }
             @if (task.description) {
-              <app-markdown class="d-none d-md-block task-desc text-muted" [value]="task.description" [inline]="true" />
+              <app-markdown class="d-none d-md-block task-desc text-muted" [value]="task.description" [inline]="true" [limit]="160" />
             } @else if (task.completed && task.completed_date) {
               <span class="d-none d-md-inline text-muted">✓ Completed {{ task.completed_date | date }}</span>
             }
