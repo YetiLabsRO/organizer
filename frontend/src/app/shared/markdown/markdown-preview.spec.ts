@@ -14,6 +14,14 @@ function text(html: string): string {
 }
 
 describe('toPreviewHtml', () => {
+  // The shape from the task list: an intro paragraph and a numbered list. Left as blocks these lay
+  // out stacked and indented, and the row grows to fit them however short the text is.
+  it('drops the block tags a CSS reset cannot reach', () => {
+    const out = preview('Two items of feedback:\n\n1. Branch selection\n2. Product pricing', 160);
+    expect(out).not.toMatch(/<(p|ol|ul|li|h[1-6]|pre|table|blockquote|div)[\s>]/);
+    expect(text(out)).toBe('Two items of feedback: Branch selection Product pricing');
+  });
+
   it('leaves a description that fits alone', () => {
     expect(preview('Short and sweet.', 160)).toContain('Short and sweet.');
     expect(preview('Short and sweet.', 160)).not.toContain('…');
@@ -43,6 +51,14 @@ describe('toPreviewHtml', () => {
     const out = preview('See [the full documentation page](https://example.com/docs) now', 12);
     expect(out).toContain('href="https://example.com/docs"');
     expect(text(out)).not.toContain('](');
+  });
+
+  it('trails the ellipsis outside a link whose text the budget never reached', () => {
+    // "Read " spends 5 of the 5, so the link's own text gets nothing: an <a>…</a> reading only an
+    // ellipsis would be a link to nowhere the reader can judge.
+    const out = preview('Read [the ticket](https://example.com/t) now', 5);
+    expect(out).not.toContain('<a');
+    expect(text(out)).toBe('Read…');
   });
 
   it('drops whatever follows the cut', () => {
