@@ -11,6 +11,8 @@ import { ProjectService } from '../../projects/project.service';
 import { TaskFilters } from '../task-filters';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { TaskDrawerService } from '../task-drawer.service';
+import { TaskStatsService } from '../task-stats.service';
+import { TaskFocusCounts } from '../task-stats.model';
 import {
   DeadlineInfo, PriorityFlag, deadlineInfo, listStatusMeta, priorityFlag,
   PRIORITY_HIGH, PRIORITY_LOW,
@@ -32,9 +34,19 @@ const BANDS: readonly BandDef[] = [
   { id: 'low', title: 'Low Priority' },
 ];
 
-/** How many tasks to pull for the grouped view. A personal organizer's actionable set is small;
- *  we fetch a generous window and group client-side so the bands are exact and mutually exclusive. */
-const FETCH_LIMIT = 500;
+/** Band id → its key in the server's focus-counts payload. */
+const COUNT_KEY: Record<BandId, keyof TaskFocusCounts> = {
+  urgent: 'overdue',
+  high: 'high',
+  normal: 'normal',
+  low: 'low',
+};
+
+/** How many tasks to pull for the grouped view — one full page. Matches `max_limit` on the API's
+ *  `TaskLimitOffsetPagination`, which silently caps anything larger; asking for more would just
+ *  misrepresent how many rows we actually get back. The *counts* come from `/api/task/focus-counts/`
+ *  and span the whole set, so they stay exact however far past this window the list runs. */
+const FETCH_LIMIT = 200;
 
 /**
  * "Priority Focus" — the redesign's flagship task view. Tasks are grouped into priority bands
@@ -52,15 +64,23 @@ export class PriorityFocusListComponent implements OnInit {
   private readonly taskService = inject(TaskService);
   private readonly tagService = inject(TagService);
   private readonly projectService = inject(ProjectService);
+  private readonly statsService = inject(TaskStatsService);
   private readonly drawer = inject(TaskDrawerService);
 
   readonly bandDefs = BANDS;
+  readonly fetchLimit = FETCH_LIMIT;
 
   readonly viewMode = signal<ViewMode>('todo');
   readonly loading = signal(true);
   readonly totalCount = signal(0);
 
+  /** True once the filtered set outgrows the window we render — the bands are showing a prefix, so
+   *  the page points at the full task list rather than pretending these are all the tasks. */
+  readonly hasMore = computed(() => this.totalCount() > FETCH_LIMIT);
+
   private readonly tasks = signal<Task[]>([]);
+  /** Exact counts over the whole filtered set (null until the first response lands). */
+  private readonly counts = signal<TaskFocusCounts | null>(null);
   private readonly tags = signal<Tag[]>([]);
   private readonly tagsById = computed(() => new Map(this.tags().map((t) => [t.id, t])));
   private readonly projectNames = signal<Map<number, string>>(new Map());
@@ -69,7 +89,9 @@ export class PriorityFocusListComponent implements OnInit {
     urgent: false, high: false, normal: true, low: true,
   });
 
-  /** Group the loaded tasks into priority bands: overdue wins, otherwise by priority. */
+  /** Group the *fetched window* into priority bands: overdue wins, otherwise by priority. These are
+   *  the rows we render; the band/tile numbers come from `counts()` and cover the whole set. Keep
+   *  this in step with `build_focus_counts` in tasks/api/stats.py. */
   readonly bands = computed(() => {
     const groups: Record<BandId, Task[]> = { urgent: [], high: [], normal: [], low: [] };
     for (const task of this.tasks()) {
@@ -81,10 +103,11 @@ export class PriorityFocusListComponent implements OnInit {
     return groups;
   });
 
-  // --- Stat tiles (derived from the loaded set) ---
-  readonly overdueCount = computed(() => this.bands().urgent.length);
-  readonly highCount = computed(() => this.bands().high.length);
-  readonly dueTodayCount = computed(() => this.tasks().filter((t) => this.isDueToday(t)).length);
+  // --- Stat tiles (server-aggregated over the whole filtered set, not just the fetched window) ---
+  readonly overdueCount = computed(() => this.counts()?.overdue ?? this.bands().urgent.length);
+  readonly highCount = computed(() => this.counts()?.high ?? this.bands().high.length);
+  readonly dueTodayCount = computed(
+    () => this.counts()?.due_today ?? this.tasks().filter((t) => this.isDueToday(t)).length);
   private readonly maxTile = computed(() =>
     Math.max(this.overdueCount(), this.highCount(), this.dueTodayCount(), 1));
 
@@ -114,11 +137,20 @@ export class PriorityFocusListComponent implements OnInit {
 
   private load(): void {
     this.loading.set(true);
-    this.taskService.getTasksPage(this.filtersFor(this.viewMode()), 0, FETCH_LIMIT).subscribe((page) => {
+    const filters = this.filtersFor(this.viewMode());
+    this.taskService.getTasksPage(filters, 0, FETCH_LIMIT).subscribe((page) => {
       this.tasks.set(page?.results ?? []);
       this.totalCount.set(page?.count ?? 0);
       this.loading.set(false);
     });
+    this.loadCounts();
+  }
+
+  /** Refresh the exact counts. Cheap (one aggregate query) and independent of the row fetch, so a
+   *  failure here just leaves the tiles on their previous values rather than blanking the page. */
+  private loadCounts(): void {
+    this.statsService.getFocusCounts(this.filtersFor(this.viewMode()))
+      .subscribe({ next: (counts) => this.counts.set(counts) });
   }
 
   private filtersFor(mode: ViewMode): TaskFilters {
@@ -127,12 +159,14 @@ export class PriorityFocusListComponent implements OnInit {
     return new TaskFilters(false);
   }
 
+  /** The rows to render for a band — only ever the fetched window. */
   tasksIn(id: BandId): Task[] {
     return this.bands()[id];
   }
 
+  /** The band's true size across the whole filtered set (falls back to the window pre-load). */
   countIn(id: BandId): number {
-    return this.bands()[id].length;
+    return this.counts()?.[COUNT_KEY[id]] ?? this.bands()[id].length;
   }
 
   toggleBand(id: BandId): void {
@@ -196,7 +230,9 @@ export class PriorityFocusListComponent implements OnInit {
   toggleDone(task: Task): void {
     task.completed = !task.completed;
     if (task.completed && task.for_today) task.for_today = false;
-    this.taskService.updateTask(task).subscribe();
+    // Re-read the counts once the write lands: they are server-derived, so unlike the rows below
+    // they cannot be kept honest by patching local state.
+    this.taskService.updateTask(task).subscribe(() => this.loadCounts());
 
     const stillMatches = this.viewMode() === 'completed' ? task.completed : !task.completed;
     if (!stillMatches) {

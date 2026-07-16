@@ -303,11 +303,20 @@
 
 /* --- FAB ------------------------------------------------------------------ */
 .focus-loading,
-.focus-empty {
+.focus-empty,
+.focus-more {
   text-align: center;
   color: var(--org-text-dim);
   padding: 24px 0;
   margin: 0;
+}
+
+.focus-more {
+  font-size: 0.875rem;
+}
+
+.focus-more a {
+  color: var(--org-accent);
 }
 
 .focus-fab {

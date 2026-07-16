@@ -55,6 +55,18 @@ export interface TagLeadTime {
   count: number;
 }
 
+/** Shape of the `GET /api/task/focus-counts/` payload (see `build_focus_counts` in
+ *  tasks/api/stats.py). Counts span the whole filtered set, not the fetched window — the priority
+ *  bands are mutually exclusive and sum to `total`, while `due_today` overlaps `overdue`. */
+export interface TaskFocusCounts {
+  total: number;
+  overdue: number;
+  high: number;
+  normal: number;
+  low: number;
+  due_today: number;
+}
+
 export interface TaskStats {
   bucket: 'day' | 'week';
   totals: { total: number; completed: number; open: number };

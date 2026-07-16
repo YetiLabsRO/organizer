@@ -101,6 +101,12 @@
     <p class="focus-loading">Loading…</p>
   } @else if (totalCount() === 0) {
     <p class="focus-empty">No tasks in this view.</p>
+  } @else if (hasMore()) {
+    <!-- The bands above only render one page; the counts on them are exact, so say where the rest went. -->
+    <p class="focus-more">
+      Showing the first {{ fetchLimit }} of {{ totalCount() }} tasks —
+      <a routerLink="/tasks">go to the task list</a> to see them all.
+    </p>
   }
 </div>
 

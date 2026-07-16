@@ -11,7 +11,7 @@ Semantics:
   (its contribution to the per-tag series legitimately exceeds the single-count timeline total).
 """
 
-from django.db.models import Avg, Count, DurationField, ExpressionWrapper, F
+from django.db.models import Avg, Count, DurationField, ExpressionWrapper, F, Q
 from django.db.models.functions import TruncDay, TruncWeek
 from django.utils import timezone
 
@@ -129,6 +129,38 @@ def _time_to_completion_by_tag(done):
             }
         )
     return result
+
+
+def build_focus_counts(base):
+    """Exact priority-band + stat-tile counts for the Priority Focus page, over the *whole* set.
+
+    The task list is windowed (``TaskLimitOffsetPagination.max_limit``), so the page cannot derive
+    these from the rows it fetched without under-counting; they are aggregated here instead.
+
+    Mirrors the frontend band semantics (``task-meta.ts`` ``deadlineInfo`` +
+    ``priority-focus-list.component.ts`` ``bands``): an overdue deadline outranks priority, so a
+    high-priority overdue task counts as *overdue* only. The bands are mutually exclusive and
+    together sum to ``total``. ``due_today`` is deliberately *not* exclusive — a task due earlier
+    today is both overdue and due today, matching the tiles it feeds.
+
+    ``not_overdue`` spells out the exact complement of ``overdue`` positively rather than negating
+    it, so tasks with no deadline (``end_date IS NULL``) land in a priority band instead of being
+    dropped by SQL three-valued NULL logic.
+    """
+    now = timezone.now()
+    today = timezone.localdate()
+
+    overdue = Q(completed=False, end_date__isnull=False, end_date__lt=now)
+    not_overdue = Q(completed=True) | Q(end_date__isnull=True) | Q(end_date__gte=now)
+
+    return base.aggregate(
+        total=Count("id"),
+        overdue=Count("id", filter=overdue),
+        high=Count("id", filter=not_overdue & Q(priority=TaskItem.HIGH)),
+        normal=Count("id", filter=not_overdue & ~Q(priority__in=[TaskItem.HIGH, TaskItem.LOW])),
+        low=Count("id", filter=not_overdue & Q(priority=TaskItem.LOW)),
+        due_today=Count("id", filter=Q(completed=False, end_date__date=today)),
+    )
 
 
 def build_task_stats(base, bucket="day"):

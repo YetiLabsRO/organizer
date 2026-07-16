@@ -6,12 +6,13 @@ import { environment } from '../../environments/environment';
 import { ServiceBase } from '../service-base';
 import { MessageService } from '../message.service';
 import { TaskFilters } from './task-filters';
-import { TaskStats } from './task-stats.model';
+import { TaskFocusCounts, TaskStats } from './task-stats.model';
 
 @Injectable({ providedIn: 'root' })
 export class TaskStatsService extends ServiceBase {
   private http = inject(HttpClient);
   private statsURL = `${environment.apiBase}/api/task/stats/`;
+  private focusCountsURL = `${environment.apiBase}/api/task/focus-counts/`;
 
   constructor(protected override messageService: MessageService) {
     super(messageService);
@@ -25,5 +26,13 @@ export class TaskStatsService extends ServiceBase {
     return this.http
       .get<TaskStats>(`${base}${sep}bucket=${bucket}`)
       .pipe(tap(() => this.log(`fetched task stats (${bucket})`)));
+  }
+
+  /** Exact priority-band + tile counts for a filter set. The Priority Focus list only fetches one
+   *  page of tasks, so it sources its counts here rather than counting the rows it rendered. */
+  getFocusCounts(filters: TaskFilters): Observable<TaskFocusCounts> {
+    return this.http
+      .get<TaskFocusCounts>(filters.getFilteredURL(this.focusCountsURL))
+      .pipe(tap((c) => this.log(`fetched focus counts (${c.total} tasks)`)));
   }
 }

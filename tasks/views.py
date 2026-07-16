@@ -14,7 +14,7 @@ from tasks.api.serializers import (
     TaskSerializer,
     TaskTemplateSerializer,
 )
-from tasks.api.stats import VALID_BUCKETS, build_task_stats
+from tasks.api.stats import VALID_BUCKETS, build_focus_counts, build_task_stats
 from tasks.filters import TaskFilterSet
 from tasks.models import Project, Tag, TaskComment, TaskItem, TaskTemplate
 from tasks.pagination import TaskLimitOffsetPagination
@@ -62,6 +62,20 @@ class TaskItemViewSet(viewsets.ModelViewSet):
         ids = list(filtered.values_list("id", flat=True).distinct())
         base = TaskItem.objects.filter(id__in=ids)
         return Response(build_task_stats(base, bucket))
+
+    @action(detail=False, methods=["get"], url_path="focus-counts")
+    def focus_counts(self, request):
+        """Exact priority-band counts over the same filtered, owner-scoped set as the list.
+
+        The Priority Focus page renders a *window* of the list (see ``TaskLimitOffsetPagination``),
+        so counting the fetched rows client-side under-reports once the set exceeds one page. This
+        aggregates the whole set in a single query instead. Same ``id__in`` indirection as ``stats``
+        so the M2M/OR joins in the filters cannot distort the counts.
+        """
+        filtered = self.filter_queryset(self.get_queryset())
+        ids = list(filtered.values_list("id", flat=True).distinct())
+        base = TaskItem.objects.filter(id__in=ids)
+        return Response(build_focus_counts(base))
 
 
 class TaskTemplateViewSet(viewsets.ModelViewSet):

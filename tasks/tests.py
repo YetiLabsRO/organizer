@@ -334,3 +334,136 @@ class TodayViewLocalDayTests(APITestCase):
         response = self.client.get(f"/api/task/?completed_after={today:%Y-%m-%d}")
 
         self.assertEqual({t["title"] for t in response.data["results"]}, {"00:30 today"})
+
+
+@override_settings(TIME_ZONE="Europe/Bucharest")
+class TaskFocusCountsTests(APITestCase):
+    """Covers `/api/task/focus-counts/`: auth, owner scoping, filters, and band semantics.
+
+    The counts back the Priority Focus tiles/headers, which must stay exact once the task set grows
+    past one page — so the assertions here deliberately exceed the pagination window.
+
+    TIME_ZONE is pinned (and deadlines below are built as *local* instants) because `due_today`
+    draws its boundary with `timezone.localdate()` — see `TodayViewLocalDayTests`. Building a
+    deadline in UTC instead makes this class pass by day and fail after local midnight.
+    """
+
+    URL = "/api/task/focus-counts/"
+    TZ = zoneinfo.ZoneInfo("Europe/Bucharest")
+
+    def setUp(self):
+        self.user = User.objects.create_user(username="owner", password="pw")
+        self.other = User.objects.create_user(username="other", password="pw")
+        self.client.force_authenticate(self.user)
+        self.past = timezone.now() - timedelta(days=2)
+        self.future = timezone.now() + timedelta(days=2)
+
+    def _task(self, title, **kwargs):
+        kwargs.setdefault("owner", self.user)
+        return TaskItem.objects.create(title=title, **kwargs)
+
+    def test_requires_authentication(self):
+        self.client.force_authenticate(None)
+
+        self.assertIn(self.client.get(self.URL).status_code, (401, 403))
+
+    def test_is_scoped_to_owner(self):
+        self._task("mine", end_date=self.past)
+        self._task("theirs", end_date=self.past, owner=self.other)
+
+        response = self.client.get(self.URL)
+
+        self.assertEqual(response.data["total"], 1)
+        self.assertEqual(response.data["overdue"], 1)
+
+    def test_overdue_outranks_priority(self):
+        """A high-priority overdue task counts as overdue only — never in both bands."""
+        self._task("late", priority=TaskItem.HIGH, end_date=self.past)
+
+        response = self.client.get(self.URL)
+
+        self.assertEqual(response.data["overdue"], 1)
+        self.assertEqual(response.data["high"], 0)
+
+    def test_tasks_without_a_deadline_land_in_a_priority_band(self):
+        self._task("someday", priority=TaskItem.LOW)
+        self._task("normal-ish", priority=TaskItem.NORMAL)
+
+        response = self.client.get(self.URL)
+
+        self.assertEqual(response.data["overdue"], 0)
+        self.assertEqual(response.data["low"], 1)
+        self.assertEqual(response.data["normal"], 1)
+
+    def test_completed_tasks_are_never_overdue(self):
+        self._task("done late", completed=True, end_date=self.past, priority=TaskItem.HIGH)
+
+        response = self.client.get(self.URL)
+
+        self.assertEqual(response.data["overdue"], 0)
+        self.assertEqual(response.data["high"], 1)
+
+    def test_bands_are_exclusive_and_sum_to_total(self):
+        self._task("overdue", end_date=self.past)
+        self._task("high", priority=TaskItem.HIGH, end_date=self.future)
+        self._task("normal", priority=TaskItem.NORMAL)
+        self._task("low", priority=TaskItem.LOW)
+
+        data = self.client.get(self.URL).data
+
+        self.assertEqual(data["overdue"] + data["high"] + data["normal"] + data["low"], data["total"])
+        self.assertEqual(data["total"], 4)
+
+    def test_due_today_counts_todays_deadline_and_overlaps_overdue(self):
+        """`due_today` is a tile, not a band: a task due earlier today is overdue *and* due today.
+
+        The deadline is local midnight today — the instant that is unambiguously "today" for the
+        user whatever the hour, yet always already past. Expressed in UTC it can land on yesterday,
+        which is precisely the boundary this asserts.
+        """
+        midnight_today = datetime.combine(timezone.localdate(), time(0, 0), tzinfo=self.TZ)
+        self._task("due 00:00 today", end_date=midnight_today)
+        self._task("due in two days", end_date=self.future)
+
+        data = self.client.get(self.URL).data
+
+        self.assertEqual(data["due_today"], 1)
+        self.assertEqual(data["overdue"], 1)
+
+    def test_due_today_ignores_a_deadline_from_yesterday(self):
+        """`due_today` means *today's* deadline, not merely a past one — yesterday's is overdue only."""
+        yesterday = timezone.localdate() - timedelta(days=1)
+        self._task("due 23:30 yesterday", end_date=datetime.combine(yesterday, time(23, 30), tzinfo=self.TZ))
+
+        data = self.client.get(self.URL).data
+
+        self.assertEqual(data["due_today"], 0)
+        self.assertEqual(data["overdue"], 1)  # still overdue, just not due *today*
+
+    def test_due_today_ignores_completed_tasks(self):
+        self._task("done", completed=True, end_date=timezone.now())
+
+        self.assertEqual(self.client.get(self.URL).data["due_today"], 0)
+
+    def test_honours_the_same_filters_as_the_list(self):
+        self._task("open", priority=TaskItem.HIGH)
+        self._task("shut", priority=TaskItem.HIGH, completed=True)
+
+        response = self.client.get(f"{self.URL}?completed=false")
+
+        self.assertEqual(response.data["total"], 1)
+        self.assertEqual(response.data["high"], 1)
+
+    def test_counts_span_the_whole_set_not_just_one_page(self):
+        """The regression this endpoint exists for: counting the fetched rows under-reports."""
+        for i in range(250):
+            self._task(f"t{i}", priority=TaskItem.NORMAL)
+        self._task("buried overdue", end_date=self.past)
+
+        data = self.client.get(self.URL).data
+
+        page = self.client.get("/api/task/?limit=500").data
+        self.assertEqual(len(page["results"]), 200)  # the window really is capped
+        self.assertEqual(data["total"], 251)  # ...but the counts are not
+        self.assertEqual(data["overdue"], 1)
+        self.assertEqual(data["normal"], 250)
