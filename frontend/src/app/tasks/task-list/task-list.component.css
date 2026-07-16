@@ -102,15 +102,26 @@
   min-width: 0;
 }
 
-/* Description renders Markdown inline, clamped to one line so rows stay fixed-height. */
+/*
+ * Description renders Markdown inline, clamped to one line so rows stay fixed-height.
+ *
+ * The breakpoint lives here rather than on Bootstrap's `d-none d-md-block`, because that utility
+ * sets `display: block !important` and would win over the `-webkit-box` the clamp needs.
+ */
 .task-desc {
-  display: -webkit-box;
-  -webkit-line-clamp: 1;
-  line-clamp: 1;
-  -webkit-box-orient: vertical;
-  overflow: hidden;
-  font-size: 0.82rem;
-  line-height: 1.3;
+  display: none;
+}
+
+@media (min-width: 768px) {
+  .task-desc {
+    display: -webkit-box;
+    -webkit-line-clamp: 1;
+    line-clamp: 1;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+    font-size: 0.82rem;
+    line-height: 1.3;
+  }
 }
 
 .task-checks {
