@@ -10,7 +10,11 @@
   margin-bottom: 0;
 }
 
-.markdown-body pre {
+/*
+ * Block chrome — padding, borders, backgrounds — is scoped to block mode. Left unscoped it
+ * outspecifies the `.markdown-inline *` reset below and props a flattened row open.
+ */
+.markdown-body:not(.markdown-inline) pre {
   padding: 0.5rem 0.75rem;
   background: var(--bs-tertiary-bg);
   border-radius: 0.25rem;
@@ -25,13 +29,13 @@
   max-width: 100%;
 }
 
-.markdown-body table {
+.markdown-body:not(.markdown-inline) table {
   width: auto;
   border-collapse: collapse;
 }
 
-.markdown-body th,
-.markdown-body td {
+.markdown-body:not(.markdown-inline) th,
+.markdown-body:not(.markdown-inline) td {
   border: 1px solid var(--bs-border-color);
   padding: 0.25rem 0.5rem;
 }
