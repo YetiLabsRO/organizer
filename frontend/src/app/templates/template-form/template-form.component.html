@@ -1,96 +1,80 @@
-@if (template(); as template) {
-  <h1>{{ template.title }}</h1>
-} @else {
-  <h1>New recurring template</h1>
-}
+@if (template(); as t) {
+  <div class="d-flex flex-wrap align-items-center gap-2 mb-3">
+    <a routerLink="/templates" class="btn btn-sm btn-outline-secondary">
+      <svg class="bi" width="14" height="14" role="img" aria-label="Back"><use xlink:href="bootstrap-icons/bootstrap-icons.svg#arrow-left"></use></svg>
+      Recurring
+    </a>
+    <h1 class="h4 mb-0 me-auto text-truncate">{{ t.id ? (t.title || 'Template') : 'New recurring template' }}</h1>
+    <button type="button" class="btn btn-sm btn-primary" (click)="save()" [disabled]="saving() || !t.title.trim()">
+      {{ saving() ? 'Saving…' : 'Save' }}
+    </button>
+    @if (t.id) {
+      <button type="button" class="btn btn-sm btn-outline-danger" (click)="onDelete()" aria-label="Delete">
+        <svg class="bi" width="14" height="14" role="img" aria-label="Delete"><use xlink:href="bootstrap-icons/bootstrap-icons.svg#trash"></use></svg>
+      </button>
+    }
+  </div>
 
-<form [formGroup]="templateForm" (ngSubmit)="onSubmit()">
-  <input type="hidden" formControlName="id">
-
-  @if (templateForm.errors?.serverError) {
-    <div class="alert alert-danger">{{ templateForm.errors?.serverError }}</div>
+  @if (error(); as e) {
+    <div class="alert alert-danger py-2">{{ e }}</div>
   }
 
-  <div class="row mb-2">
-    <div class="col-8">
-      <label for="title" class="form-label">Title</label>
-      <input class="form-control" id="title" type="text" formControlName="title"
-             [ngClass]="{'is-invalid': templateForm.get('title')?.invalid && showErrors()}">
-      @if (templateForm.get('title')?.invalid && showErrors()) {
-        <div class="invalid-feedback">
-          @if (templateForm.get('title')?.errors?.serverError) {
-            <div>{{ templateForm.get('title')?.errors?.serverError }}</div>
-          } @else {
-            <div>This field is required.</div>
-          }
-        </div>
-      }
-    </div>
-    <div class="col-4">
-      <label for="priority" class="form-label">Priority</label>
-      <select class="form-select" id="priority" formControlName="priority">
-        @for (p of priorities; track p.value) {
-          <option [ngValue]="p.value">{{ p.label }}</option>
-        }
-      </select>
-    </div>
-  </div>
-
-  <div class="row mb-2">
+  <div class="row g-3 detail-card">
     <div class="col-12">
-      <label for="description" class="form-label">Description</label>
-      <textarea class="form-control" id="description" formControlName="description"></textarea>
+      <label class="form-label" for="tpl-title">Title</label>
+      <input id="tpl-title" class="form-control form-control-lg" [(ngModel)]="t.title" placeholder="e.g. Prepare monthly financial documents">
     </div>
-  </div>
 
-  <div class="row mb-2">
-    <div class="col-6">
-      <label for="project" class="form-label">Project</label>
-      <select class="form-select" id="project" formControlName="project">
-        <option [ngValue]="null">— none —</option>
-        @for (project of projects(); track project.id) {
-          <option [ngValue]="project.id">{{ project.title }}</option>
+    <div class="col-12 col-md-6">
+      <label class="form-label d-block mb-2">Priority</label>
+      <div class="seg" role="group" aria-label="Priority" [attr.data-accent]="priorityAccent(t.priority)" [style.--seg-i]="priorityIndex(t.priority)">
+        <span class="seg-thumb" aria-hidden="true"></span>
+        @for (p of priorityOptions; track p.value) {
+          <button type="button" class="seg-opt" [class.active]="t.priority === p.value" [attr.data-accent]="p.accent"
+                  (click)="setPriority(p.value)" [attr.aria-pressed]="t.priority === p.value">
+            <span class="seg-bars" aria-hidden="true"><span class="bar"></span><span class="bar"></span><span class="bar"></span></span>
+            <span>{{ p.label }}</span>
+          </button>
         }
-      </select>
+      </div>
     </div>
-    <div class="col-6">
-      <label for="estimated_time" class="form-label">Estimated time (min)</label>
-      <input class="form-control" id="estimated_time" type="number" min="0" formControlName="estimated_time">
+    <div class="col-6 col-md-3">
+      <label class="form-label" for="tpl-estimate">Estimated (min)</label>
+      <input id="tpl-estimate" type="number" min="0" class="form-control" [(ngModel)]="t.estimated_time" placeholder="—">
     </div>
-  </div>
 
-  <div class="row mb-2">
-    <div class="col-12">
+    <div class="col-md-6">
+      <label class="form-label">Project</label>
+      <app-project-picker [(projectId)]="t.project" />
+    </div>
+    <div class="col-md-6">
       <label class="form-label">Tags</label>
-      <tag-input identifyBy="id" displayBy="name" formControlName="_tags" theme="bootstrap"
-                 [onlyFromAutocomplete]="true">
-        <tag-input-dropdown [autocompleteObservable]="searchTags()" [showDropdownIfEmpty]="true"
-                            displayBy="name" identifyBy="id">
-        </tag-input-dropdown>
-      </tag-input>
+      <app-tag-chips-input [(tags)]="t._tags" />
     </div>
-  </div>
 
-  <hr>
-  <h5>Recurrence</h5>
+    <div class="col-12">
+      <label class="form-label" for="tpl-description">Description <span class="text-muted small">(Markdown)</span></label>
+      <textarea id="tpl-description" class="form-control" rows="4" [(ngModel)]="t.description" placeholder="Optional details copied onto each generated task…"></textarea>
+    </div>
 
-  <div class="row mb-2">
-    <div class="col-4">
-      <label for="frequency" class="form-label">Repeats</label>
-      <select class="form-select" id="frequency" formControlName="frequency">
+    <!-- ===================== Recurrence ===================== -->
+    <div class="col-12"><hr class="mb-0"><h2 class="h6 mt-2 mb-0 text-muted">Recurrence</h2></div>
+
+    <div class="col-6 col-md-4">
+      <label class="form-label" for="tpl-frequency">Repeats</label>
+      <select id="tpl-frequency" class="form-select" [ngModel]="t.frequency" (ngModelChange)="setFrequency($event)">
         <option value="daily">Daily</option>
         <option value="weekly">Weekly</option>
         <option value="monthly">Monthly</option>
         <option value="yearly">Yearly</option>
       </select>
     </div>
-    <div class="col-4">
-      <label for="interval" class="form-label">Every</label>
+    <div class="col-6 col-md-4">
+      <label class="form-label" for="tpl-interval">Every</label>
       <div class="input-group">
-        <input class="form-control" id="interval" type="number" min="1" formControlName="interval"
-               [ngClass]="{'is-invalid': templateForm.get('interval')?.invalid && showErrors()}">
+        <input id="tpl-interval" class="form-control" type="number" min="1" [(ngModel)]="t.interval">
         <span class="input-group-text">
-          @switch (frequency()) {
+          @switch (t.frequency) {
             @case ('daily') { day(s) }
             @case ('weekly') { week(s) }
             @case ('monthly') { month(s) }
@@ -99,85 +83,71 @@
         </span>
       </div>
     </div>
-  </div>
 
-  @if (frequency() === 'weekly') {
-    <div class="row mb-2">
+    @if (t.frequency === 'weekly') {
       <div class="col-12">
         <label class="form-label d-block">On weekdays</label>
-        <div class="btn-group flex-wrap" role="group">
+        <div class="d-flex flex-wrap gap-1">
           @for (wd of weekdayLabels; track wd.value) {
             <button type="button" class="btn btn-sm"
                     [class.btn-primary]="isWeekdaySelected(wd.value)"
                     [class.btn-outline-secondary]="!isWeekdaySelected(wd.value)"
-                    (click)="toggleWeekday(wd.value)">{{ wd.label }}</button>
+                    (click)="toggleWeekday(wd.value)" [attr.aria-pressed]="isWeekdaySelected(wd.value)">{{ wd.label }}</button>
           }
         </div>
       </div>
-    </div>
-  }
+    }
 
-  @if (frequency() === 'monthly' || frequency() === 'yearly') {
-    <div class="row mb-2">
-      @if (frequency() === 'yearly') {
-        <div class="col-6">
-          <label for="month_of_year" class="form-label">Month</label>
-          <select class="form-select" id="month_of_year" formControlName="month_of_year">
+    @if (t.frequency === 'monthly' || t.frequency === 'yearly') {
+      @if (t.frequency === 'yearly') {
+        <div class="col-6 col-md-4">
+          <label class="form-label" for="tpl-month">Month</label>
+          <select id="tpl-month" class="form-select" [(ngModel)]="t.month_of_year">
             @for (m of months; track $index) {
               <option [ngValue]="$index + 1">{{ m }}</option>
             }
           </select>
         </div>
       }
-      <div class="col-6">
-        <label for="day_of_month" class="form-label">Day of month</label>
-        <input class="form-control" id="day_of_month" type="number" min="1" max="31"
-               formControlName="day_of_month">
-        <small class="text-muted">Day 31 falls on the last day of shorter months.</small>
+      <div class="col-6 col-md-4">
+        <label class="form-label" for="tpl-dom">Day of month</label>
+        <input id="tpl-dom" class="form-control" type="number" min="1" max="31" [(ngModel)]="t.day_of_month">
+        <div class="form-text">Day 31 falls on the last day of shorter months.</div>
+      </div>
+    }
+
+    <div class="col-6 col-md-4">
+      <label class="form-label" for="tpl-start">Start on</label>
+      <input id="tpl-start" class="form-control" type="date" [(ngModel)]="t.start_on">
+    </div>
+    <div class="col-6 col-md-4">
+      <label class="form-label" for="tpl-end">End on <span class="text-muted small">(optional)</span></label>
+      <input id="tpl-end" class="form-control" type="date" [(ngModel)]="t.end_on">
+    </div>
+    <div class="col-6 col-md-4">
+      <label class="form-label" for="tpl-lead">Create days early</label>
+      <input id="tpl-lead" class="form-control" type="number" min="0" [(ngModel)]="t.lead_time_days">
+      <div class="form-text">Task appears this many days before its deadline.</div>
+    </div>
+
+    <div class="col-12 d-flex flex-column gap-2">
+      <div class="form-check form-switch">
+        <input id="tpl-skip" class="form-check-input" type="checkbox" [(ngModel)]="t.skip_if_previous_open">
+        <label class="form-check-label" for="tpl-skip">Don't create the next task while the previous one is still open</label>
+      </div>
+      <div class="form-check form-switch">
+        <input id="tpl-active" class="form-check-input" type="checkbox" [(ngModel)]="t.is_active">
+        <label class="form-check-label" for="tpl-active">Active</label>
       </div>
     </div>
-  }
 
-  <div class="row mb-2">
-    <div class="col-4">
-      <label for="start_on" class="form-label">Start on</label>
-      <input class="form-control" id="start_on" type="date" formControlName="start_on">
-    </div>
-    <div class="col-4">
-      <label for="end_on" class="form-label">End on (optional)</label>
-      <input class="form-control" id="end_on" type="date" formControlName="end_on"
-             [ngClass]="{'is-invalid': templateForm.get('end_on')?.errors?.serverError && showErrors()}">
-      @if (templateForm.get('end_on')?.errors?.serverError && showErrors()) {
-        <div class="invalid-feedback">{{ templateForm.get('end_on')?.errors?.serverError }}</div>
-      }
-    </div>
-    <div class="col-4">
-      <label for="lead_time_days" class="form-label">Create days early</label>
-      <input class="form-control" id="lead_time_days" type="number" min="0" formControlName="lead_time_days">
-    </div>
-  </div>
-
-  <div class="row mb-2">
-    <div class="col-12 form-check ms-2">
-      <input class="form-check-input" type="checkbox" id="skip_if_previous_open"
-             formControlName="skip_if_previous_open">
-      <label class="form-check-label" for="skip_if_previous_open">
-        Don't create the next task while the previous one is still open
-      </label>
-    </div>
-    <div class="col-12 form-check ms-2">
-      <input class="form-check-input" type="checkbox" id="is_active" formControlName="is_active">
-      <label class="form-check-label" for="is_active">Active</label>
-    </div>
-  </div>
-
-  <div class="row mb-2 mt-3">
     <div class="col-12">
-      <button class="btn btn-primary" type="submit">Save</button>
+      <button type="button" class="btn btn-primary" (click)="save()" [disabled]="saving() || !t.title.trim()">
+        {{ saving() ? 'Saving…' : 'Save' }}
+      </button>
       <a routerLink="/templates" class="btn btn-outline-secondary ms-1">Cancel</a>
-      @if (templateForm.get('id')?.value) {
-        <button class="float-end btn btn-outline-danger" type="button" (click)="onDelete()">Delete</button>
-      }
     </div>
   </div>
-</form>
+} @else {
+  <div class="text-muted py-5 text-center">Loading…</div>
+}

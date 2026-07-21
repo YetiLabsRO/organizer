@@ -8,9 +8,9 @@ export interface TaskTemplate {
   description?: string | null;
   priority?: number;
   estimated_time?: number | null;
-  project?: number | null;
+  project?: number; // matches Task.project so the shared project picker's [(projectId)] binds cleanly
 
-  _tags?: Tag[];
+  _tags: Tag[]; // hydrated chip objects; required so the shared tag-chips [(tags)] binds cleanly
   tags: number[]; // for writing references
 
   // Recurrence rule (structured; `rrule` reserved for a future iCal upgrade).
