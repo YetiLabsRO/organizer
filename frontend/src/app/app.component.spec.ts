@@ -19,8 +19,8 @@ describe('AppComponent', () => {
     expect(fixture.componentInstance).toBeTruthy();
   });
 
-  it("should have the title 'organizer-ui'", () => {
+  it("should have the title 'Organizer'", () => {
     const fixture = TestBed.createComponent(AppComponent);
-    expect(fixture.componentInstance.title).toEqual('organizer-ui');
+    expect(fixture.componentInstance.title).toEqual('Organizer');
   });
 });
