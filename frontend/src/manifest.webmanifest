@@ -1,8 +1,8 @@
 {
-  "name": "organizer-ui",
-  "short_name": "organizer-ui",
-  "theme_color": "#1976d2",
-  "background_color": "#fafafa",
+  "name": "Organizer",
+  "short_name": "Organizer",
+  "theme_color": "#101415",
+  "background_color": "#101415",
   "display": "standalone",
   "scope": "./",
   "start_url": "./",
