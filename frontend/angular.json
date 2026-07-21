@@ -98,7 +98,8 @@
           "options": {
             "tsConfig": "tsconfig.spec.json",
             "buildTarget": "organizer-frontend:build:development",
-            "runner": "vitest"
+            "runner": "vitest",
+            "runnerConfig": "vitest.config.ts"
           }
         }
       }
