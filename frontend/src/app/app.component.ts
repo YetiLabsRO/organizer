@@ -5,6 +5,7 @@ import { filter } from 'rxjs/operators';
 import { AuthService } from './auth.service';
 import { TaskCreateDrawerComponent } from './tasks/task-create-drawer/task-create-drawer.component';
 import { TaskDrawerService } from './tasks/task-drawer.service';
+import { TaskEventsService } from './tasks/task-events.service';
 
 @Component({
   selector: 'app-root',
@@ -17,6 +18,9 @@ export class AppComponent implements OnInit {
   private readonly authService = inject(AuthService);
   private readonly router = inject(Router);
   readonly drawer = inject(TaskDrawerService);
+  // Injected for its side effect: opens the live task-sync socket at app start (and follows
+  // login/logout), so updates stream in on any route, not only once a task list is on screen.
+  private readonly taskEvents = inject(TaskEventsService);
 
   readonly currentUser = this.authService.currentUser;
   readonly loggedIn = this.authService.loggedIn;

@@ -4,7 +4,11 @@
 
 export const environment = {
   production: false,
-  apiBase: 'http://127.0.0.1:8000'
+  apiBase: 'http://127.0.0.1:8000',
+  // WebSocket origin for the live task-sync feed (/ws/tasks/). In dev the API runs on a different
+  // origin than `ng serve`, so it's explicit. Leave empty (as in prod) to derive it from
+  // `location` — see TaskEventsService.
+  wsBase: 'ws://127.0.0.1:8000'
 };
 
 /*

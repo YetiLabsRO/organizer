@@ -44,7 +44,15 @@ consolidated in-tree from the now-deprecated `organizer-ui` repository.
   as tools. Built on the `mcp` SDK; tools reuse the DRF serializers + `TaskFilterSet` via a
   synchronous service layer (`mcp_server/service.py`), owner-scoped like the task API. Served under
   **ASGI** (`organizer/asgi.py` routes `/mcp` + the protected-resource metadata to the MCP app,
-  everything else to Django). See the Authentication section for the OAuth flow.
+  `/ws/` to Channels, everything else to Django). See the Authentication section for the OAuth flow.
+- **Real-time task sync** — a WebSocket at `/ws/tasks/` (Django Channels) pushes `task.created` /
+  `task.updated` / `task.deleted` events to a user's other open clients. Broadcasts come from
+  **`TaskItem` model signals** (`tasks/signals.py`) on `transaction.on_commit`, so the REST API, the
+  MCP server, Celery generation, and the admin all emit through one path; the consumer
+  (`tasks/consumers.py`) authenticates from the socket's first message (the DRF token can't ride a WS
+  handshake header). Fan-out is via a **Redis channel layer** (`CHANNELS_REDIS_URL`, default DB
+  index `/1`); if Redis is down, broadcasts are logged and dropped and writes still succeed. The
+  Angular side is a root `TaskEventsService` the task views subscribe to.
 
 ## Authentication
 
@@ -93,8 +101,9 @@ grant `read`/`write`. Tests: `manage.py test mcp_server`.
 
 Configuration is read from a `.env` file at the repo root via **python-decouple** (see
 `.env.example` for the keys: `SECRET_KEY`, `DEBUG`, `ALLOWED_HOSTS`, `DB_*`, `CORS_ALLOWED_ORIGINS`,
-`MCP_BASE_URL`, `OAUTH_*_TOKEN_TTL`). Real OS environment variables take precedence over the file,
-so prod/CI inject them directly. Postgres is the only supported database (`psycopg` v3).
+`MCP_BASE_URL`, `OAUTH_*_TOKEN_TTL`, `CELERY_BROKER_URL`, `CHANNELS_REDIS_URL`). Real OS environment
+variables take precedence over the file, so prod/CI inject them directly. Postgres is the only
+supported database (`psycopg` v3).
 
 ## Worktrees
 

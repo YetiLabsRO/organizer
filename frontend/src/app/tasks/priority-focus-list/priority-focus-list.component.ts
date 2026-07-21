@@ -9,8 +9,11 @@ import { Tag } from '../../tags/tag';
 import { TagColorPipe } from '../../tags/tag-color.pipe';
 import { ProjectService } from '../../projects/project.service';
 import { TaskFilters } from '../task-filters';
+import { Subject } from 'rxjs';
+import { debounceTime } from 'rxjs/operators';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { TaskDrawerService } from '../task-drawer.service';
+import { TaskEventsService, TaskEvent } from '../task-events.service';
 import { TaskStatsService } from '../task-stats.service';
 import { TaskFocusCounts } from '../task-stats.model';
 import {
@@ -66,6 +69,10 @@ export class PriorityFocusListComponent implements OnInit {
   private readonly projectService = inject(ProjectService);
   private readonly statsService = inject(TaskStatsService);
   private readonly drawer = inject(TaskDrawerService);
+  private readonly taskEvents = inject(TaskEventsService);
+
+  /** Coalesces live-sync events into one quiet reload (no loading flash). */
+  private readonly liveReload$ = new Subject<void>();
 
   readonly bandDefs = BANDS;
   readonly fetchLimit = FETCH_LIMIT;
@@ -119,6 +126,41 @@ export class PriorityFocusListComponent implements OnInit {
   constructor() {
     // Reload when a task is created via the shared drawer (sidebar "New Task" or the FAB).
     this.drawer.created$.pipe(takeUntilDestroyed()).subscribe(() => this.load());
+    // Live sync: coalesce remote changes into a quiet reload that keeps the current view on screen.
+    this.liveReload$.pipe(debounceTime(300), takeUntilDestroyed()).subscribe(() => this.load(false));
+    this.taskEvents.events$.pipe(takeUntilDestroyed()).subscribe((event) => this.onTaskEvent(event));
+  }
+
+  /**
+   * Apply a live task event. Deletes and updates patch local state for instant feedback; every event
+   * then schedules a debounced reload so band membership, ordering, and the server-derived tile
+   * counts converge (an update that moves a task between bands, or in/out of the window, settles on
+   * the reload). Counts are re-read eagerly since they can't be kept honest locally.
+   */
+  private onTaskEvent(event: TaskEvent): void {
+    switch (event.type) {
+      case 'task.deleted':
+        this.tasks.update((ts) => ts.filter((t) => t.id !== event.id));
+        this.totalCount.update((c) => Math.max(0, c - 1));
+        this.loadCounts();
+        this.liveReload$.next();
+        break;
+      case 'task.updated':
+        this.tasks.update((ts) => {
+          const i = ts.findIndex((t) => t.id === event.id);
+          if (i === -1) return ts; // not in the window; the reload will pull it in if it belongs
+          const next = [...ts];
+          next[i] = { ...event.task, _tags: [] };
+          return next;
+        });
+        this.loadCounts();
+        this.liveReload$.next();
+        break;
+      case 'task.created':
+      case 'reconnected':
+        this.liveReload$.next();
+        break;
+    }
   }
 
   ngOnInit(): void {
@@ -135,8 +177,10 @@ export class PriorityFocusListComponent implements OnInit {
     this.load();
   }
 
-  private load(): void {
-    this.loading.set(true);
+  private load(showLoading = true): void {
+    // Live-sync reloads pass showLoading=false so the page doesn't flash its skeleton on every
+    // remote change; the initial/explicit loads still show it.
+    if (showLoading) this.loading.set(true);
     const filters = this.filtersFor(this.viewMode());
     this.taskService.getTasksPage(filters, 0, FETCH_LIMIT).subscribe((page) => {
       this.tasks.set(page?.results ?? []);

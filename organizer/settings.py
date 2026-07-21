@@ -66,7 +66,12 @@ INSTALLED_APPS = [
 
     'corsheaders',
 
-    'tasks',
+    # Real-time task sync: provides the channel layer + WebSocket consumer plumbing (see
+    # organizer/asgi.py, tasks/consumers.py). The composed ASGI app owns routing, so
+    # ASGI_APPLICATION deliberately stays pointed at it rather than a ProtocolTypeRouter.
+    'channels',
+
+    'tasks.apps.TasksConfig',  # was 'tasks'; the AppConfig.ready() wires up the realtime signals
 ]
 
 MIDDLEWARE = [
@@ -246,6 +251,21 @@ CELERY_BEAT_SCHEDULE = {
         # Daily at a configurable hour (local CELERY_TIMEZONE). Sanitized so a stray inline comment
         # in .env (e.g. `RECURRING_TASKS_HOUR=6  # 6am`) doesn't crash the worker/beat on startup.
         "schedule": crontab(minute=0, hour=_env_int("RECURRING_TASKS_HOUR", 6)),
+    },
+}
+
+
+# Channels — real-time task sync over WebSockets (/ws/tasks/). The channel layer fans task-change
+# events out to a user's open clients across processes: production runs uvicorn with several workers,
+# so an in-memory layer would only reach clients that landed on the same worker. Redis is already
+# deployed (the Celery broker), so this adds no infrastructure — it just uses a separate DB index
+# (default /1) so it never collides with Celery on /0. Like Celery, this is optional: if Redis is
+# unreachable, broadcasts are logged and dropped (tasks/signals.py) and the REST API keeps working.
+CHANNELS_REDIS_URL = _strip_inline_comment(config("CHANNELS_REDIS_URL", default="redis://localhost:6379/1"))
+CHANNEL_LAYERS = {
+    "default": {
+        "BACKEND": "channels_redis.core.RedisChannelLayer",
+        "CONFIG": {"hosts": [CHANNELS_REDIS_URL]},
     },
 }
 

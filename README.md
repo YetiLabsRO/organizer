@@ -160,14 +160,29 @@ server {
         proxy_read_timeout 3600s;
     }
 
+    # Real-time task sync — WebSocket upgrade. NOTE: this is the *opposite* of the /mcp block above:
+    # a WS upgrade needs `Connection: upgrade` (mapped from the request), NOT `Connection ""`, so do
+    # not copy /mcp here. Without this block the SPA catch-all `location /` below swallows the
+    # handshake and the socket never connects.
+    location /ws/ {
+        proxy_pass http://127.0.0.1:8000;
+        proxy_http_version 1.1;
+        proxy_set_header Host              $host;
+        proxy_set_header X-Forwarded-For   $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_set_header Upgrade           $http_upgrade;
+        proxy_set_header Connection        "upgrade";
+        proxy_read_timeout 3600s;   # keep idle sockets open (heartbeats are ~25s apart)
+    }
+
     location /static/ { alias /var/app/organizer/static/; }   # from collectstatic (STATIC_ROOT)
     location /        { try_files $uri $uri/ /index.html; }   # SPA client-side routing
 }
 ```
 
 (If instead your nginx has no SPA and `location /` is a plain `proxy_pass` to the backend, you only
-need to add the streaming `location /mcp` block — the OAuth and well-known paths are already covered
-by that catch-all.)
+need to add the streaming `location /mcp` block and the `location /ws/` upgrade block — the OAuth and
+well-known paths are already covered by that catch-all.)
 
 ### 4. A Django user for consent
 

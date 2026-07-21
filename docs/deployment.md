@@ -80,3 +80,25 @@ entry works too:
 ```
 0 6 * * *  cd /var/app/organizer && .venv/bin/python manage.py generate_recurring_tasks
 ```
+
+## Real-time task sync (WebSockets)
+
+Task lists update live across a user's open browsers/phone via a WebSocket at `/ws/tasks/`
+(Django Channels — see `tasks/consumers.py`, `tasks/signals.py`, and the WebSocket branch in
+`organizer/asgi.py`). This needs three things, **two of which you already have** for MCP + Celery:
+
+1. **ASGI.** The app must run under `uvicorn organizer.asgi:application` (already required for `/mcp`).
+   The `uvicorn[standard]` extra (in `requirements.txt`) provides the WebSocket protocol support —
+   the bare `uvicorn` package cannot serve WebSockets.
+2. **Redis channel layer.** The multi-process web app (`--workers 3`) fans events out through Redis,
+   so an in-memory layer would only reach clients on the same worker. Reuses the Celery Redis on a
+   **separate DB index** — set `CHANNELS_REDIS_URL=redis://localhost:6379/1` in `.env`
+   (see `.env.example`). No new service; the Redis you run for Celery already covers it.
+3. **nginx WebSocket upgrade.** Add the `location /ws/` block from the
+   [README nginx config](../README.md#server-side-setup-mcp--oauth-21) — it sets
+   `Upgrade`/`Connection: upgrade`, the **opposite** of the `/mcp` block. Without it the SPA
+   catch-all `location /` swallows the handshake.
+
+Like Celery, this is **optional infrastructure**: if Redis is unreachable the broadcast is logged and
+dropped, live updates pause, and every REST write still succeeds — clients fall back to manual
+refresh. No extra process to run: the WebSocket is served by the same uvicorn workers as the REST API.
