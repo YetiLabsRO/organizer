@@ -48,6 +48,12 @@ npm test             # unit tests (Angular @angular/build:unit-test / vitest)
   `src/app/http-interceptors/token.interceptor.ts`. Login hits `/rest-auth/login/`.
 - The Django backend must allow the dev origin (`CORS_ALLOWED_ORIGINS` includes
   `http://localhost:4200`).
+- **Live task sync**: `TaskEventsService` (`src/app/tasks/task-events.service.ts`, root-provided)
+  keeps a WebSocket to `/ws/tasks/` open while logged in and emits `task.*` events the task views
+  subscribe to (`TaskListComponent`, `PriorityFocusListComponent`). The socket URL comes from
+  `environment.wsBase` (dev: `ws://127.0.0.1:8000`; prod: empty → derived from `location`, since a
+  browser can't set an auth header on a WS handshake the token is sent as the first frame). It
+  reconnects with backoff, treats a `4401` close as fatal, and drops stale events by `changed_date`.
 
 ## Conventions for new/changed code
 The app is fully modern Angular — keep it that way:

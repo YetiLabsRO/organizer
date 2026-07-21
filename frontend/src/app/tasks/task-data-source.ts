@@ -30,6 +30,8 @@ export class TaskDataSource extends DataSource<Task | undefined> {
   private lastRange: ListRange = { start: 0, end: this.pageSize };
   private total = 0;
   private initialised = false;
+  /** Set by refresh(): the next page response reconciles the total/array length in place. */
+  private reconciling = false;
 
   constructor(private readonly loader: TaskPageLoader) {
     super();
@@ -54,6 +56,25 @@ export class TaskDataSource extends DataSource<Task | undefined> {
 
   disconnect(): void {
     this.subscription.unsubscribe();
+  }
+
+  /**
+   * Reconcile the loaded window with the server *without blanking it first* — re-fetch the pages
+   * around the visible range and resize the backing array to the fresh total. Used by live sync so
+   * an insert/removal that happened elsewhere (which shifts every row below it) converges. Unlike
+   * `reset()` the current rows stay on screen while the refetch is in flight, so there's no skeleton
+   * flash and the scroll position is kept.
+   */
+  refresh(): void {
+    if (!this.initialised) {
+      // Nothing loaded yet — the initial fetch will bring the current state.
+      this.fetchPage(0);
+      return;
+    }
+    this.fetchedPages.clear();
+    this.reconciling = true;
+    this.fetchPage(0);
+    this.fetchRange(this.lastRange);
   }
 
   /** Clear all loaded data and re-fetch the currently visible window in place. */
@@ -132,6 +153,14 @@ export class TaskDataSource extends DataSource<Task | undefined> {
           this.total = result.count;
           this.cachedData = new Array<Task | undefined>(result.count);
           this.initialised = true;
+        } else if (this.reconciling) {
+          // A refresh() is reconciling: adopt the fresh total and resize in place (grow fills
+          // undefined slots that fetch on scroll; shrink drops now-gone tail rows).
+          this.reconciling = false;
+          if (result.count !== this.total) {
+            this.total = result.count;
+            this.cachedData.length = result.count;
+          }
         }
         result.results.forEach((task, i) => {
           this.cachedData[page * this.pageSize + i] = task;

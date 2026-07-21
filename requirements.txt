@@ -10,8 +10,11 @@ anyio==4.14.1
     #   mcp
     #   sse-starlette
     #   starlette
+    #   watchfiles
 asgiref==3.11.1
     # via
+    #   channels
+    #   channels-redis
     #   django
     #   django-cors-headers
 attrs==26.1.0
@@ -29,6 +32,12 @@ certifi==2026.6.17
     #   requests
 cffi==2.1.0 ; platform_python_implementation != 'PyPy'
     # via cryptography
+channels==4.3.2
+    # via
+    #   channels-redis
+    #   organizer
+channels-redis==4.3.0
+    # via organizer
 charset-normalizer==3.4.9
     # via requests
 click==8.4.2
@@ -54,6 +63,7 @@ dj-rest-auth==7.2.0
     # via organizer
 django==6.0.7
     # via
+    #   channels
     #   dj-rest-auth
     #   django-cors-headers
     #   django-filter
@@ -79,6 +89,8 @@ h11==0.16.0
     #   uvicorn
 httpcore==1.0.9
     # via httpx
+httptools==0.8.0
+    # via uvicorn
 httpx==0.28.1
     # via mcp
 httpx-sse==0.4.3
@@ -98,6 +110,8 @@ kombu==5.6.2
     # via celery
 mcp==1.28.1
     # via organizer
+msgpack==1.2.1
+    # via channels-redis
 oauthlib==3.3.1
     # via django-oauth-toolkit
 packaging==26.2
@@ -125,13 +139,19 @@ python-dateutil==2.9.0.post0
 python-decouple==3.8
     # via organizer
 python-dotenv==1.2.2
-    # via pydantic-settings
+    # via
+    #   pydantic-settings
+    #   uvicorn
 python-multipart==0.0.32
     # via mcp
 pywin32==312 ; sys_platform == 'win32'
     # via mcp
+pyyaml==6.0.3
+    # via uvicorn
 redis==8.0.1
-    # via organizer
+    # via
+    #   channels-redis
+    #   organizer
 referencing==0.37.0
     # via
     #   jsonschema
@@ -182,10 +202,16 @@ uvicorn==0.51.0
     # via
     #   mcp
     #   organizer
+uvloop==0.22.1 ; platform_python_implementation != 'PyPy' and sys_platform != 'cygwin' and sys_platform != 'win32'
+    # via uvicorn
 vine==5.1.0
     # via
     #   amqp
     #   celery
     #   kombu
+watchfiles==1.2.0
+    # via uvicorn
 wcwidth==0.8.2
     # via prompt-toolkit
+websockets==16.1.1
+    # via uvicorn

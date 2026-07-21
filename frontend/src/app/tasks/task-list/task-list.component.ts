@@ -20,6 +20,7 @@ import { TaskFilters } from '../task-filters';
 import { TaskDataSource, TaskPageLoader, TASK_PAGE_SIZE } from '../task-data-source';
 import { TaskQuickAddComponent, NewTaskRequest } from '../task-quick-add/task-quick-add.component';
 import { TaskDrawerService } from '../task-drawer.service';
+import { TaskEventsService, TaskEvent } from '../task-events.service';
 import { MarkdownComponent } from '../../shared/markdown/markdown.component';
 import { KeyboardShortcutsComponent, ShortcutGroup } from '../../shared/keyboard-shortcuts/keyboard-shortcuts.component';
 import {
@@ -47,6 +48,7 @@ export class TaskListComponent implements OnInit, OnDestroy {
   private readonly breakpointObserver = inject(BreakpointObserver);
   private readonly router = inject(Router);
   private readonly taskDrawer = inject(TaskDrawerService);
+  private readonly taskEvents = inject(TaskEventsService);
   readonly isMobile = toSignal(
     this.breakpointObserver.observe('(max-width: 767.98px)').pipe(map((r) => r.matches)),
     { initialValue: false },
@@ -81,6 +83,8 @@ export class TaskListComponent implements OnInit, OnDestroy {
   @Input() for_tag: Tag | null = null;
 
   private readonly search$ = new Subject<string>();
+  /** Coalesces live-sync events into one server reconcile (a burst of edits → a single refetch). */
+  private readonly liveRefresh$ = new Subject<void>();
   private readonly subscription = new Subscription();
 
   constructor(
@@ -105,7 +109,39 @@ export class TaskListComponent implements OnInit, OnDestroy {
     this.subscription.add(
       this.search$.pipe(debounceTime(250), distinctUntilChanged()).subscribe(() => this.rebuild())
     );
+    // Live sync: reconcile the loaded window with the server after a burst of remote changes.
+    this.subscription.add(
+      this.liveRefresh$.pipe(debounceTime(300)).subscribe(() => this.dataSource()?.refresh())
+    );
+    this.subscription.add(
+      this.taskEvents.events$.subscribe((event) => this.onTaskEvent(event))
+    );
     this.rebuild();
+  }
+
+  /**
+   * Apply a live task event to the loaded window. Deletes shrink the list immediately; updates patch
+   * the row in place for instant feedback; everything then triggers a debounced server reconcile so
+   * filter-match, ordering, and out-of-window inserts converge (a task that no longer matches the
+   * active filters drops out on the refetch).
+   */
+  private onTaskEvent(event: TaskEvent): void {
+    const ds = this.dataSource();
+    if (!ds) return;
+    switch (event.type) {
+      case 'task.deleted':
+        ds.removeById(event.id);
+        this.totalCount.update((c) => Math.max(0, c - 1));
+        break;
+      case 'task.updated':
+        ds.replace({ ...event.task, _tags: [] });
+        this.liveRefresh$.next();
+        break;
+      case 'task.created':
+      case 'reconnected':
+        this.liveRefresh$.next();
+        break;
+    }
   }
 
   ngOnDestroy(): void {
