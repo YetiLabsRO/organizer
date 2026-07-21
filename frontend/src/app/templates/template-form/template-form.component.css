@@ -2,26 +2,14 @@
   display: block;
 }
 
-h1 {
-  font-family: var(--org-font-heading);
-  font-weight: 700;
-  margin-bottom: 20px;
-}
-
-/* The whole form sits on one elevated surface card. */
-form {
+/* The whole form sits on one elevated surface card (mirrors the task detail form). */
+.detail-card {
   max-width: 900px;
+  margin: 0;
   padding: 24px;
   background: var(--org-surface);
   border: 1px solid var(--org-border);
   border-radius: var(--org-radius);
-}
-
-/* "Recurrence" section heading. */
-h5 {
-  font-family: var(--org-font-heading);
-  font-weight: 600;
-  color: var(--org-text);
 }
 
 hr {
@@ -37,6 +25,10 @@ hr {
 
 .form-check-label {
   color: var(--org-text-muted);
+}
+
+.form-text {
+  color: var(--org-text-dim);
 }
 
 /* Inputs drop to the deeper canvas so they read against the card. */
@@ -62,12 +54,98 @@ hr {
   color: var(--org-text-muted);
 }
 
-small.text-muted {
-  color: var(--org-text-dim) !important;
+/* ===================================================================== */
+/* Priority segmented control — copied from the task detail form so the   */
+/* two priority pickers are visually identical.                           */
+/* ===================================================================== */
+.seg {
+  --seg-pad: 3px;
+  position: relative;
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  padding: var(--seg-pad);
+  max-width: 24rem;
+  border: 1px solid var(--bs-border-color);
+  border-radius: 0.6rem;
+  background: var(--bs-tertiary-bg);
 }
 
-/* Weekday toggles stay separate rounded buttons rather than a fused group. */
-.btn-group .btn {
-  border-radius: var(--org-radius-sm);
-  margin-right: 0.25rem;
+/* Raised chip that slides to the selected segment. */
+.seg-thumb {
+  position: absolute;
+  top: var(--seg-pad);
+  bottom: var(--seg-pad);
+  left: var(--seg-pad);
+  width: calc((100% - 2 * var(--seg-pad)) / 3);
+  border-radius: 0.45rem;
+  background: var(--bs-body-bg);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.12);
+  transform: translateX(calc(var(--seg-i, 1) * 100%));
+  transition: transform 0.25s cubic-bezier(0.3, 0.85, 0.3, 1), box-shadow 0.2s;
+}
+
+.seg[data-accent="low"] .seg-thumb {
+  box-shadow: 0 0 0 1px var(--bs-success), 0 1px 4px color-mix(in srgb, var(--bs-success) 45%, transparent);
+}
+.seg[data-accent="normal"] .seg-thumb {
+  box-shadow: 0 0 0 1px var(--bs-warning), 0 1px 4px color-mix(in srgb, var(--bs-warning) 45%, transparent);
+}
+.seg[data-accent="high"] .seg-thumb {
+  box-shadow: 0 0 0 1px var(--bs-danger), 0 1px 4px color-mix(in srgb, var(--bs-danger) 45%, transparent);
+}
+
+.seg-opt {
+  position: relative;
+  z-index: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.45rem;
+  padding: 0.4rem 0.5rem;
+  border: 0;
+  border-radius: 0.45rem;
+  background: transparent;
+  color: var(--bs-secondary-color);
+  font-size: 0.88rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: color 0.15s;
+}
+
+.seg-opt.active {
+  color: var(--bs-body-color);
+  font-weight: 600;
+}
+
+/* Signal-style magnitude bars — filled up to the option's level, coloured by urgency. */
+.seg-bars {
+  display: inline-flex;
+  align-items: flex-end;
+  gap: 2px;
+  height: 12px;
+}
+
+.seg-bars .bar {
+  width: 3px;
+  border-radius: 1px;
+  background: var(--bs-secondary-bg);
+}
+
+.seg-bars .bar:nth-child(1) { height: 5px; }
+.seg-bars .bar:nth-child(2) { height: 8px; }
+.seg-bars .bar:nth-child(3) { height: 11px; }
+
+.seg-opt[data-accent="low"] .bar:nth-child(-n + 1) { background: var(--bs-success); }
+.seg-opt[data-accent="normal"] .bar:nth-child(-n + 2) { background: var(--bs-warning); }
+.seg-opt[data-accent="high"] .bar:nth-child(-n + 3) { background: var(--bs-danger); }
+
+.seg-opt:focus-visible {
+  outline: 2px solid var(--bs-primary);
+  outline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .seg-thumb {
+    transition: none;
+  }
 }
