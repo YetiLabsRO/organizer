@@ -26,7 +26,7 @@ export class AppComponent implements OnInit {
   private readonly currentUrl = signal(this.router.url);
   /** "Bare" routes render full-screen without the sidebar/top bar (e.g. login). */
   readonly bare = computed(() => this.currentUrl().startsWith('/login'));
-  title = 'organizer-ui';
+  title = 'Organizer';
 
   ngOnInit(): void {
     this.authService.getCurrentUser().subscribe();
