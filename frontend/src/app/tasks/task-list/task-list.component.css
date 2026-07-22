@@ -121,6 +121,14 @@
     overflow: hidden;
     font-size: 0.82rem;
     line-height: 1.3;
+    /*
+     * Break inside an unbreakable token (a long URL, a wordwordword…) so the description's
+     * min-content shrinks to ~0. Without it, `overflow: hidden` clips the token visually but its
+     * min-content still sizes the row, and the virtual-scroll wrapper (position: absolute,
+     * min-width: 100%) grows to fit the widest rendered row — so one long description stretches the
+     * whole window a little wider until that row scrolls out of the buffer.
+     */
+    overflow-wrap: anywhere;
   }
 }
 
