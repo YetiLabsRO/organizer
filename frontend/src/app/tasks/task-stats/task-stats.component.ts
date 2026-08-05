@@ -176,6 +176,9 @@ export class TaskStatsComponent {
     const forToday = params.get('for_today') === 'true' ? true : null;
     const todayView = params.get('today_view') === 'true' ? true : null;
     const filters = new TaskFilters(completed, params.get('contains'), null, tags, forToday, todayView);
+    // Carried over from a project-scoped list, so its Stats link stays about that project.
+    const project = Number(params.get('project'));
+    filters.project = Number.isFinite(project) && project > 0 ? project : null;
     const after = params.get('completed_after');
     const before = params.get('completed_before');
     if (after) filters.completed_after = this.parseDate(after);

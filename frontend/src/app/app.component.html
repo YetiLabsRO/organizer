@@ -73,4 +73,4 @@
 
 <!-- Single app-wide Create Task drawer, opened from the sidebar or a list FAB. -->
 <app-task-create-drawer [open]="drawer.open()" (openChange)="drawer.open.set($event)"
-                        (created)="drawer.notifyCreated($event)" />
+                        [preset]="drawer.preset()" (created)="drawer.notifyCreated($event)" />

@@ -2,7 +2,7 @@ from django.db.models import Q
 from django.utils import timezone
 from django_filters import rest_framework as filters
 
-from tasks.models import Tag, TaskItem
+from tasks.models import Project, Tag, TaskItem
 
 
 class OrLookupFilter(filters.CharFilter):
@@ -41,6 +41,9 @@ class TaskFilterSet(filters.FilterSet):
     completed_after = filters.DateFilter("completed_date", "date__gte")
     completed_before = filters.DateFilter("completed_date", "date__lte")
 
+    # Scopes the list to one project — what the project detail view lists its tasks with.
+    project = filters.ModelChoiceFilter(queryset=Project.objects.all())
+
     # conjoined=True → AND across multiple tags (a task must carry *all* requested tags).
     tags = filters.ModelMultipleChoiceFilter(
         field_name="tags__slug",
@@ -60,7 +63,7 @@ class TaskFilterSet(filters.FilterSet):
 
     class Meta:
         model = TaskItem
-        fields = ["contains", "completed", "status", "priority", "tags",
+        fields = ["contains", "completed", "status", "priority", "tags", "project",
                   "completed_date", "completed_after", "completed_before", "owner",
                   "start_date", "end_date", "for_today", "today_view"]
 

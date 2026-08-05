@@ -1,14 +1,68 @@
-<div class = "container-fluid py-5">
-  <h1 class="display-5 fw-bold"> {{ project()?.title }} <a routerLink="/projects/{{ project()?.id }}/edit" class="btn btn-primary float-end">Edit</a> </h1>
-  <p class = "col-md-8 fs-4"> {{ project()?.description }}</p>
+@if (project(); as project) {
+  <div class="project">
+    <header class="project-head">
+      <div class="project-head-text">
+        <p class="project-eyebrow">Project</p>
+        <h1 class="project-title">{{ project.title }}</h1>
 
-  @if (project(); as project) {
-    <div>
-      @for (tag of project._tags; track tag.id) {
-        <span [style.background-color]="tag.color"
-              [style.color]="tag.color | reverseLuminanceColor"
-              class="badge me-1 tag">{{ tag.name }}</span>
-      }
-    </div>
-  }
-</div>
+        @if (project.description) {
+          <app-markdown class="project-desc" [value]="project.description" />
+        }
+
+        <div class="project-meta">
+          <span class="meta-item" title="Slug">
+            <svg class="bi" width="12" height="12" role="img" aria-hidden="true"><use xlink:href="bootstrap-icons/bootstrap-icons.svg#link-45deg"></use></svg>
+            {{ project.slug }}
+          </span>
+          @if (project.start_date) {
+            <span class="meta-item" title="Start date">
+              <svg class="bi" width="12" height="12" role="img" aria-hidden="true"><use xlink:href="bootstrap-icons/bootstrap-icons.svg#play-circle"></use></svg>
+              {{ project.start_date }}
+            </span>
+          }
+          @if (project.end_date) {
+            <span class="meta-item" title="End date">
+              <svg class="bi" width="12" height="12" role="img" aria-hidden="true"><use xlink:href="bootstrap-icons/bootstrap-icons.svg#flag"></use></svg>
+              {{ project.end_date }}
+            </span>
+          }
+        </div>
+
+        @if (project._tags.length) {
+          <div class="project-tags">
+            @for (tag of project._tags; track tag.id) {
+              <a class="tag-pill" routerLink="/tags/{{ tag.id }}"
+                 [style.background-color]="tag.color" [style.color]="tag | tagColor">{{ tag.name }}</a>
+            }
+          </div>
+        }
+      </div>
+
+      <div class="project-actions">
+        <button type="button" class="btn-new-task" (click)="newTask()">
+          <svg class="bi" width="15" height="15" role="img" aria-hidden="true"><use xlink:href="bootstrap-icons/bootstrap-icons.svg#plus-lg"></use></svg>
+          <span>New Task</span>
+        </button>
+        <a class="btn-edit" routerLink="/projects/{{ project.id }}/edit">
+          <svg class="bi" width="14" height="14" role="img" aria-hidden="true"><use xlink:href="bootstrap-icons/bootstrap-icons.svg#pencil"></use></svg>
+          <span>Edit</span>
+        </a>
+      </div>
+    </header>
+
+    <!-- The app's regular task list, scoped to this project: anything added here joins it. -->
+    <app-task-list [project]="project.id" />
+  </div>
+} @else if (loading()) {
+  <div class="project-placeholder placeholder-glow" aria-busy="true">
+    <span class="placeholder col-4 rounded"></span>
+    <span class="placeholder placeholder-sm col-6 rounded"></span>
+    <span class="placeholder placeholder-sm col-3 rounded"></span>
+  </div>
+} @else if (notFound()) {
+  <div class="project-empty">
+    <h1>Project not found</h1>
+    <p>It may have been deleted, or the link is wrong.</p>
+    <a class="btn-edit" routerLink="/projects">Back to projects</a>
+  </div>
+}

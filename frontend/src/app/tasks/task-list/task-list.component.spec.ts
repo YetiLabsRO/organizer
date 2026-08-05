@@ -48,6 +48,49 @@ describe('TaskListComponent', () => {
     expect(component).toBeTruthy();
   });
 
+  describe('project scope', () => {
+    const emptyPage = { count: 0, next: null, previous: null, results: [] };
+
+    beforeEach(() => {
+      vi.spyOn(taskService, 'getTasksPage').mockReturnValue(of(emptyPage));
+      fixture.componentRef.setInput('project', 4);
+      fixture.detectChanges();
+    });
+
+    it('narrows the query to the project it is scoped to', () => {
+      expect(taskService.getTasksPage).toHaveBeenCalledWith(
+        expect.objectContaining({ project: 4 }), 0, expect.any(Number),
+      );
+    });
+
+    it('adds a quick-added task to that project', () => {
+      const addTask = vi.spyOn(taskService, 'addTask').mockReturnValue(of(makeTask(9)));
+
+      component.onQuickAdd({ title: 'Fix the nav', tags: [] });
+
+      expect(addTask).toHaveBeenCalledWith(expect.objectContaining({ title: 'Fix the nav', project: 4 }));
+    });
+
+    it('lets an explicit @project token win over the scope', () => {
+      const addTask = vi.spyOn(taskService, 'addTask').mockReturnValue(of(makeTask(9)));
+
+      component.onQuickAdd({ title: 'Fix the nav', tags: [], project: 7 });
+
+      expect(addTask).toHaveBeenCalledWith(expect.objectContaining({ project: 7 }));
+    });
+
+    it('leaves the project off the query when the list is not scoped', () => {
+      fixture.componentRef.setInput('project', null);
+      fixture.detectChanges();
+
+      expect(taskService.getTasksPage).toHaveBeenLastCalledWith(
+        expect.objectContaining({ project: null }), 0, expect.any(Number),
+      );
+      const filters = vi.mocked(taskService.getTasksPage).mock.lastCall![0]!;
+      expect(filters.getQueryString()).not.toContain('project=');
+    });
+  });
+
   describe('keyboard shortcuts', () => {
     let tasks: Task[];
 

@@ -9,7 +9,7 @@ from django.test import SimpleTestCase, TestCase, override_settings
 from django.utils import timezone
 from rest_framework.test import APITestCase
 
-from tasks.models import Tag, TaskComment, TaskItem
+from tasks.models import Project, Tag, TaskComment, TaskItem
 
 User = get_user_model()
 
@@ -96,6 +96,93 @@ class TaskListPaginationTests(APITestCase):
 
         titles = [t["title"] for t in response.data["results"]]
         self.assertEqual(titles, ["both"])
+
+
+class TaskProjectFilterTests(APITestCase):
+    """Covers `?project=<id>` — what the project detail view lists a project's tasks with."""
+
+    def setUp(self):
+        self.user = User.objects.create_user(username="owner", password="pw")
+        self.other = User.objects.create_user(username="other", password="pw")
+        self.client.force_authenticate(self.user)
+        self.website = Project.objects.create(title="Website")
+        self.garden = Project.objects.create(title="Garden")
+
+    def test_filters_to_one_project(self):
+        TaskItem.objects.create(title="mine", project=self.website, owner=self.user)
+        TaskItem.objects.create(title="elsewhere", project=self.garden, owner=self.user)
+        TaskItem.objects.create(title="unassigned", owner=self.user)
+
+        response = self.client.get(f"/api/task/?project={self.website.pk}")
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual([t["title"] for t in response.data["results"]], ["mine"])
+        self.assertEqual(response.data["count"], 1)
+
+    def test_stays_scoped_to_the_owner(self):
+        TaskItem.objects.create(title="mine", project=self.website, owner=self.user)
+        TaskItem.objects.create(title="theirs", project=self.website, owner=self.other)
+
+        response = self.client.get(f"/api/task/?project={self.website.pk}")
+
+        self.assertEqual([t["title"] for t in response.data["results"]], ["mine"])
+
+    def test_combines_with_other_filters(self):
+        TaskItem.objects.create(title="open", project=self.website, owner=self.user)
+        TaskItem.objects.create(title="done", project=self.website, completed=True, owner=self.user)
+
+        response = self.client.get(f"/api/task/?project={self.website.pk}&completed=false")
+
+        self.assertEqual([t["title"] for t in response.data["results"]], ["open"])
+
+    def test_unknown_project_is_rejected(self):
+        TaskItem.objects.create(title="mine", project=self.website, owner=self.user)
+
+        response = self.client.get("/api/task/?project=999999")
+
+        self.assertEqual(response.status_code, 400)
+
+
+class ProjectApiTests(APITestCase):
+    """Covers what the project form sends: create/update with and without dates."""
+
+    def setUp(self):
+        self.user = User.objects.create_user(username="owner", password="pw")
+        self.client.force_authenticate(self.user)
+
+    def test_create_without_dates(self):
+        payload = {"title": "Website", "slug": "website", "start_date": None, "end_date": None}
+
+        response = self.client.post("/api/project/", payload, format="json")
+
+        self.assertEqual(response.status_code, 201, response.data)
+        self.assertIsNone(Project.objects.get(slug="website").start_date)
+
+    def test_update_edits_in_place(self):
+        project = Project.objects.create(title="Website", slug="website")
+
+        response = self.client.put(
+            f"/api/project/{project.pk}/",
+            {"title": "Website v2", "slug": "website", "start_date": "2026-08-05", "end_date": None},
+            format="json",
+        )
+
+        self.assertEqual(response.status_code, 200, response.data)
+        self.assertEqual(Project.objects.count(), 1)
+        project.refresh_from_db()
+        self.assertEqual(project.title, "Website v2")
+        # A bare ISO date lands at local midnight, so compare on the local day (it is the previous
+        # day in UTC for any timezone east of it).
+        self.assertEqual(timezone.localtime(project.start_date).date(), datetime(2026, 8, 5).date())
+
+    def test_dates_are_returned_day_month_year(self):
+        project = Project.objects.create(
+            title="Website", slug="website", start_date=timezone.make_aware(datetime(2026, 8, 5, 9, 0))
+        )
+
+        response = self.client.get(f"/api/project/{project.pk}/")
+
+        self.assertEqual(response.data["start_date"], "05/08/2026")
 
 
 class TaskStatsTests(APITestCase):

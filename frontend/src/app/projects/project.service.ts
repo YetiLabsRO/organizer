@@ -2,12 +2,11 @@ import {Injectable} from '@angular/core';
 import { HttpClient, HttpHeaders } from '@angular/common/http';
 import {MessageService} from '../message.service';
 import {TagService} from '../tags/tag.service';
-import {BehaviorSubject, Observable, throwError} from 'rxjs';
+import {BehaviorSubject, Observable, forkJoin, of} from 'rxjs';
 import {Project} from './project';
-import {catchError, filter, shareReplay, tap} from 'rxjs/operators';
+import {catchError, filter, map, shareReplay, switchMap, tap} from 'rxjs/operators';
 import {ServiceBase} from '../service-base';
 import {Tag} from '../tags/tag';
-import {Task} from '../tasks/task';
 import {environment} from '../../environments/environment';
 
 @Injectable({
@@ -36,15 +35,26 @@ export class ProjectService extends ServiceBase {
     }
   }
 
-  processTagsFromServer(project: Project): void {
-    if (project.tags.length) {
-      this.tagService.getTagsByID(project.tags).subscribe((tags: Tag[]) => {
-        project._tags = tags;
-        this.project.next(project);
-      })
-    } else {
-      project._tags = []
+  /**
+   * Resolve a project's tag ids onto `_tags`, emitting the project once they've landed.
+   *
+   * The project is only emitted *after* its tags resolve, so a consumer holding it in a signal
+   * renders the pills without needing a second change-detection pass. A project with no tags
+   * emits straight away — `forkJoin([])` completes without emitting, which is what used to leave
+   * the detail view permanently blank for untagged projects.
+   */
+  processTagsFromServer(project: Project): Observable<Project> {
+    project._tags = [];
+    if (!project.tags?.length) {
+      return of(project);
     }
+    return this.tagService.getTagsByID(project.tags).pipe(
+      map((tags: Tag[]) => {
+        project._tags = tags;
+        return project;
+      }),
+      catchError(() => of(project)),
+    );
   }
 
   private projectsCache$?: Observable<Project[]>;
@@ -57,13 +67,16 @@ export class ProjectService extends ServiceBase {
     return this.projectsCache$;
   }
 
+  /** Drop the cached project list so the next autocomplete/lookup sees new or renamed projects. */
+  invalidateProjectsCache(): void {
+    this.projectsCache$ = undefined;
+  }
+
   getProjects(): Observable<Project[]> {
     return this.http.get<Project[]>(this.projectsURL)
       .pipe(
-        tap((projects: Project[]) => projects.map((project: Project) => {
-          this.processTagsFromServer(project);
-          return project;
-        })),
+        switchMap((projects: Project[]) =>
+          projects.length ? forkJoin(projects.map(project => this.processTagsFromServer(project))) : of([])),
         tap(_ => this.log(`fetched ${_.length} projects`)),
         catchError(this.handleError<Project[]>('getProjects', []))
       )
@@ -84,21 +97,29 @@ export class ProjectService extends ServiceBase {
     )
   }
 
-  _getProject(projectId: number | string): void {
-    const url = this.getDetailURL(projectId);
-    this.http.get<Project>(url)
+  /**
+   * Fetch one project with its tags resolved. Unlike `getProject`, the returned observable is the
+   * request itself — it completes, and errors reach the caller, so a view can tell "still loading"
+   * from "no such project".
+   */
+  fetchProject(projectId: number | string): Observable<Project> {
+    return this.http.get<Project>(this.getDetailURL(projectId))
       .pipe(
-        tap((project: Project) => {
-          this.processTagsFromServer(project);
-        }),
+        switchMap((project: Project) => this.processTagsFromServer(project)),
         tap(_ => this.log(`fetched project ${_.id}`)),
-        catchError(error => {
-          this.clearProject()
-          return throwError(error);
-        })
-    ).pipe(
-      catchError(this.handleError<Project>('getProject'))
-    ).subscribe()
+      )
+  }
+
+  _getProject(projectId: number | string): void {
+    // Drop whatever was last viewed first, so the subject can't hand the previous project to a
+    // detail view that's waiting on this fetch.
+    this.clearProject();
+    this.fetchProject(projectId)
+      .pipe(catchError(this.handleError<Project>('getProject')))
+      .subscribe({
+        next: (project: Project) => this.project.next(project),
+        error: () => this.clearProject(),
+      })
   }
 
   cleanFormValues(project: Project) {
@@ -118,10 +139,9 @@ export class ProjectService extends ServiceBase {
     this.cleanFormValues(project);
     return this.http.post<Project>(url, project, this.httpOptions)
       .pipe(
-        tap((newProject: Project) => {
-          this.processTagsFromServer(newProject);
-        }),
+        switchMap((newProject: Project) => this.processTagsFromServer(newProject)),
         tap((newproject: Project) => this.log(`added project id=${newproject.id}`)),
+        tap(() => this.invalidateProjectsCache()),
         catchError(this.handleError<Project>('create Project'))
       )
   }
@@ -130,12 +150,13 @@ export class ProjectService extends ServiceBase {
     const url = this.getDetailURL(project.id || 0);
 
     this.processTagsToServer(project);
+    this.cleanFormValues(project);
     return this.http.put<Project>(url, project, this.httpOptions)
       .pipe(
-        tap((updatedProject: Project) => {
-          this.processTagsFromServer(updatedProject);
-        }),
+        switchMap((updatedProject: Project) => this.processTagsFromServer(updatedProject)),
         tap((updatedProject: Project) => this.log(`updated project id=${updatedProject.id}`)),
+        tap((updatedProject: Project) => this.project.next(updatedProject)),
+        tap(() => this.invalidateProjectsCache()),
         catchError(this.handleError<Project>('update Project'))
       )
   }
