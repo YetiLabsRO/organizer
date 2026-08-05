@@ -12,6 +12,8 @@ export class TaskFilters {
   today_view: boolean | null;
   completed_after: Date | null;
   completed_before: Date | null;
+  /** Narrows the list to one project (its id) — used by the project detail view. */
+  project: number | null = null;
 
   constructor(completed: boolean | null = null,
               contains: string | null = null,
@@ -33,7 +35,7 @@ export class TaskFilters {
 
   getQueryString(): string {
     let queryItems: string[] = [];
-    let filterList: string[] = ["completed", "contains", "for_today", "today_view"]
+    let filterList: string[] = ["completed", "contains", "for_today", "today_view", "project"]
 
     filterList.forEach((item => {
       if (this[item] !== null) {
@@ -71,7 +73,7 @@ export class TaskFilters {
    *  the stats page so it reflects exactly the list's filters and stays bookmarkable. */
   getQueryParams(): { [k: string]: string | string[] } {
     const params: { [k: string]: string | string[] } = {};
-    ["completed", "contains", "for_today", "today_view"].forEach((item) => {
+    ["completed", "contains", "for_today", "today_view", "project"].forEach((item) => {
       if (this[item] !== null && this[item] !== undefined) {
         params[item] = String(this[item]);
       }

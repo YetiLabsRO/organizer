@@ -1,7 +1,7 @@
 import { ChangeDetectionStrategy, Component, OnInit, inject, signal } from '@angular/core';
 import { NgClass } from '@angular/common';
 import { ReactiveFormsModule, UntypedFormBuilder, UntypedFormGroup, Validators } from '@angular/forms';
-import { NgbModule, NgbDate } from '@ng-bootstrap/ng-bootstrap';
+import { NgbModule, NgbDate, NgbDateStruct } from '@ng-bootstrap/ng-bootstrap';
 import { TagInputModule } from 'ngx-chips';
 import { ProjectService } from '../project.service';
 import { Project } from '../project';
@@ -51,11 +51,14 @@ export class ProjectFormComponent implements OnInit {
         this.project.set(project);
         if (project) {
           //  using patch value here because Project has additional fields that the form
-          //  complains about otherwise (.tags, in this case)
-          this.projectForm.patchValue(project);
-
-          const azi = new Date();
-          this.projectForm.get('start_date')?.setValue({ 'year': azi.getFullYear(), 'month': azi.getMonth(), 'day': azi.getDay() });
+          //  complains about otherwise (.tags, in this case). The dates arrive as `DD/MM/YYYY`
+          //  strings and have to become datepicker structs, or the picker shows nothing and the
+          //  API rejects what gets sent back.
+          this.projectForm.patchValue({
+            ...project,
+            start_date: this.toDateStruct(project.start_date),
+            end_date: this.toDateStruct(project.end_date),
+          });
         }
       });
     } else {
@@ -89,24 +92,60 @@ export class ProjectFormComponent implements OnInit {
     form.setErrors({ serverError: errors.error['non_field_errors'] });
   }
 
+  /** API date (`DD/MM/YYYY`) → the datepicker's `{year, month, day}`. */
+  private toDateStruct(value: unknown): NgbDateStruct | null {
+    if (typeof value !== 'string') {
+      return null;
+    }
+    const parts = value.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
+    return parts ? { day: +parts[1], month: +parts[2], year: +parts[3] } : null;
+  }
+
+  /** The datepicker's `{year, month, day}` → an ISO date, the only format the API parses. */
+  private fromDateStruct(value: any): string | null {
+    if (!value) {
+      return null;
+    }
+    if (typeof value === 'string') {
+      return value;
+    }
+    const { year, month, day } = value as NgbDateStruct;
+    if (!year || !month || !day) {
+      return null;
+    }
+    const pad = (n: number) => String(n).padStart(2, '0');
+    return `${year}-${pad(month)}-${pad(day)}`;
+  }
+
   onSubmit(): void {
     if (this.projectForm.invalid) {
       this.showErrors.set(true);
       return;
     }
 
-    this.projectService
-      .createProject(<Project>this.projectForm.value)
+    const value = this.projectForm.value;
+    const project = <Project>{
+      ...value,
+      start_date: this.fromDateStruct(value.start_date),
+      end_date: this.fromDateStruct(value.end_date),
+    };
+
+    // Editing an existing project updates it; only a form without an id creates one.
+    const save = project.id
+      ? this.projectService.updateProject(project)
+      : this.projectService.createProject(project);
+
+    save
       .pipe(catchError(errors => {
         this.applyErrorsOnForm(this.projectForm, errors);
         this.showErrors.set(true);
         return throwError(errors);
       }))
       .subscribe({
-        next: newProject => {
-          this.project.set(newProject);
+        next: savedProject => {
+          this.project.set(savedProject);
           this.showErrors.set(false);
-          this.router.navigate(['projects', newProject.id]);
+          this.router.navigate(['projects', savedProject.id]);
         },
         error: () => this.showErrors.set(true),
       });

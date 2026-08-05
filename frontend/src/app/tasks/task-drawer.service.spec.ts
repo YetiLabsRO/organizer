@@ -20,6 +20,20 @@ describe('TaskDrawerService', () => {
     expect(service.open()).toBe(true);
   });
 
+  it('openDrawer carries a preset for the drawer to seed its draft with', () => {
+    service.openDrawer({ project: 3 });
+
+    expect(service.open()).toBe(true);
+    expect(service.preset()).toEqual({ project: 3 });
+  });
+
+  it('opening without a preset clears the previous one', () => {
+    service.openDrawer({ project: 3 });
+    service.openDrawer();
+
+    expect(service.preset()).toEqual({});
+  });
+
   it('notifyCreated emits the created task to subscribers', () => {
     const seen: Task[] = [];
     service.created$.subscribe((task) => seen.push(task));

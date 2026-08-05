@@ -36,4 +36,25 @@ describe('TaskCreateDrawerComponent', () => {
     component.close();
     expect(component.open()).toBe(false);
   });
+
+  it('seeds the draft from the preset when it opens (a task created in a project joins it)', () => {
+    fixture.componentRef.setInput('preset', { project: 12 });
+    component.open.set(true);
+    fixture.detectChanges();
+
+    expect(component.draft.project).toBe(12);
+  });
+
+  it('drops the preset project once reopened without one', () => {
+    fixture.componentRef.setInput('preset', { project: 12 });
+    component.open.set(true);
+    fixture.detectChanges();
+
+    component.close();
+    fixture.componentRef.setInput('preset', {});
+    component.open.set(true);
+    fixture.detectChanges();
+
+    expect(component.draft.project).toBeUndefined();
+  });
 });

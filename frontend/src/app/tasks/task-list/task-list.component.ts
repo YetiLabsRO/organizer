@@ -82,6 +82,26 @@ export class TaskListComponent implements OnInit, OnDestroy {
   @Input() filters_tags: Tag[] | null = null;
   @Input() for_tag: Tag | null = null;
 
+  private _project: number | null = null;
+
+  /**
+   * Scope the list to one project (the project detail view). Beyond filtering, it becomes the
+   * default project for anything created from this list, so a task added inside a project lands
+   * in it without the user picking it.
+   */
+  @Input()
+  set project(value: number | null | undefined) {
+    const next = value ?? null;
+    if (next === this._project) return;
+    this._project = next;
+    // Only rebuild once the list exists; before ngOnInit the first build picks this up anyway.
+    if (this.dataSource()) this.rebuild();
+  }
+
+  get project(): number | null {
+    return this._project;
+  }
+
   private readonly search$ = new Subject<string>();
   /** Coalesces live-sync events into one server reconcile (a burst of edits → a single refetch). */
   private readonly liveRefresh$ = new Subject<void>();
@@ -115,6 +135,11 @@ export class TaskListComponent implements OnInit, OnDestroy {
     );
     this.subscription.add(
       this.taskEvents.events$.subscribe((event) => this.onTaskEvent(event))
+    );
+    // A task created through the shared drawer belongs in this list too — reconcile without
+    // waiting on the live-sync socket, which may be down.
+    this.subscription.add(
+      this.taskDrawer.created$.subscribe(() => this.dataSource()?.refresh())
     );
     this.rebuild();
   }
@@ -187,6 +212,12 @@ export class TaskListComponent implements OnInit, OnDestroy {
 
   /** Translate the UI filter toggles + search term into a single paginable query. */
   private buildFilters(): TaskFilters {
+    const filters = this.buildStateFilters();
+    filters.project = this._project;
+    return filters;
+  }
+
+  private buildStateFilters(): TaskFilters {
     const f = this.filters();
     let completed: boolean | null = null;
     if (f['completed'] != f['todo']) {
@@ -270,7 +301,8 @@ export class TaskListComponent implements OnInit, OnDestroy {
     const task: Task = {
       title: request.title,
       for_today: this.filters()['today'],
-      project: request.project,
+      // An explicit `@project` token wins; otherwise a project-scoped list adds into its project.
+      project: request.project ?? this._project ?? undefined,
       // Only set when the shortcut syntax asked for it, so the backend defaults still apply.
       priority: request.priority,
       end_date: request.endDate,

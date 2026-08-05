@@ -1,8 +1,11 @@
-import { ChangeDetectionStrategy, Component, effect, inject, model, output, signal } from '@angular/core';
+import {
+  ChangeDetectionStrategy, Component, effect, inject, input, model, output, signal, untracked,
+} from '@angular/core';
 import { FormsModule } from '@angular/forms';
 
 import { Task } from '../task';
 import { TaskService } from '../task.service';
+import { TaskDraftPreset } from '../task-drawer.service';
 import { Tag } from '../../tags/tag';
 import { TagChipsInputComponent } from '../../shared/tag-chips-input/tag-chips-input.component';
 import { ProjectPickerComponent } from '../../shared/project-picker/project-picker.component';
@@ -35,6 +38,8 @@ interface Draft {
 })
 export class TaskCreateDrawerComponent {
   readonly open = model(false);
+  /** Fields the trigger pre-filled (e.g. the project, when opened from a project). */
+  readonly preset = input<TaskDraftPreset>({});
   readonly created = output<Task>();
 
   private readonly taskService = inject(TaskService);
@@ -49,14 +54,15 @@ export class TaskCreateDrawerComponent {
   draft: Draft = this.blank();
 
   constructor() {
-    // Start each opening from a clean draft.
+    // Start each opening from a clean draft, seeded with whatever the trigger pre-filled. The
+    // preset is read untracked so changing it while the drawer is open can't wipe what's typed.
     effect(() => {
-      if (this.open()) this.draft = this.blank();
+      if (this.open()) this.draft = this.blank(untracked(this.preset));
     });
   }
 
-  private blank(): Draft {
-    return { title: '', priority: 2, description: '', for_today: false, tags: [] };
+  private blank(preset: TaskDraftPreset = {}): Draft {
+    return { title: '', priority: 2, description: '', for_today: false, tags: [], project: preset.project };
   }
 
   close(): void {

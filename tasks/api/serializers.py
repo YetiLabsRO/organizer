@@ -123,8 +123,10 @@ class ProjectSerializer(serializers.ModelSerializer):
 
     # tasks = TaskSerializer(many=True, read_only=True)
     # slug = serializers.ReadOnlyField()
-    start_date = serializers.DateTimeField(required=False, format="%d/%m/%Y")
-    end_date = serializers.DateTimeField(required=False, format="%d/%m/%Y")
+    # `allow_null` mirrors the model (both dates are nullable) — without it the UI cannot save a
+    # project that simply has no dates, which is the common case.
+    start_date = serializers.DateTimeField(required=False, allow_null=True, format="%d/%m/%Y")
+    end_date = serializers.DateTimeField(required=False, allow_null=True, format="%d/%m/%Y")
 
 
 class TaskTemplateSerializer(serializers.ModelSerializer):
