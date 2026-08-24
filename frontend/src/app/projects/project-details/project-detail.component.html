@@ -51,7 +51,7 @@
     </header>
 
     <!-- The app's regular task list, scoped to this project: anything added here joins it. -->
-    <app-task-list [project]="project.id" />
+    <app-task-list [project]="project.id" embedded />
   </div>
 } @else if (loading()) {
   <div class="project-placeholder placeholder-glow" aria-busy="true">
