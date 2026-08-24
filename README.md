@@ -223,3 +223,32 @@ curl -si -X POST https://organizer.example.com/mcp \
 
 The `issuer` in the first response and the `resource`/`authorization_servers` in the second must
 match `MCP_BASE_URL`. If they show `localhost`, `MCP_BASE_URL` isn't set in the server's environment.
+
+---
+
+## Notion sync (optional)
+
+Organizer can mirror a user's tasks into a Notion database and keep both sides in step. It creates
+its **own, empty** database rather than adopting one, so it owns the schema and nearly every task
+field round-trips — priority, status, tags, project, dates, estimates and sub-tasks included.
+
+Setup is one registered integration per deployment, then each user connects their own workspace:
+
+```bash
+# .env — from https://www.notion.so/my-integrations (create a *public* integration)
+NOTION_CLIENT_ID=...
+NOTION_CLIENT_SECRET=...
+NOTION_REDIRECT_URI=https://organizer.example.com/integrations/notion/callback/
+FRONTEND_BASE_URL=https://organizer.example.com
+
+# Encrypts stored OAuth credentials. Set this in production:
+#   python -c 'from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())'
+INTEGRATIONS_TOKEN_KEY=...
+```
+
+The redirect URI must match what is registered in Notion exactly, trailing slash included. Periodic
+syncing runs on Celery beat; `manage.py sync_notion [--user <id>] [--full]` is the manual fallback.
+
+Full setup, the field mapping, and the behaviours worth knowing (the Notion page body is never
+synced, deletion is symmetric, projects/tags are matched rather than created) are in
+**[docs/notion.md](docs/notion.md)**.

@@ -39,6 +39,16 @@ class TagSerializer(TagBaseSerializer):
         return obj.tasks.count()
 
 
+def notion_page_url(task):
+    """URL of the task's mirrored Notion page, or None when it is not synced.
+
+    Lives here rather than on the model so the ``tasks`` app keeps no hard dependency on the
+    integration: if the link table is absent the attribute simply is not there.
+    """
+    link = getattr(task, "notion_link", None)
+    return link.url if link is not None else None
+
+
 class TaskSerializer(serializers.ModelSerializer):
     class Meta:
         model = TaskItem
@@ -65,6 +75,7 @@ class TaskSerializer(serializers.ModelSerializer):
             "for_today",
             "template",
             "template_title",
+            "notion_url",
         )
 
     tags = PrimaryKeyRelatedField(queryset=Tag.objects.all(), many=True, allow_null=True, required=False)
@@ -77,6 +88,11 @@ class TaskSerializer(serializers.ModelSerializer):
     template = PrimaryKeyRelatedField(read_only=True)
     template_title = serializers.CharField(source="template.title", read_only=True, default=None)
     parent_task_title = serializers.CharField(source="parent_task.title", read_only=True, default=None)
+    # Lets the UI badge a task that is mirrored to Notion and link straight to its page.
+    notion_url = serializers.SerializerMethodField()
+
+    def get_notion_url(self, task):
+        return notion_page_url(task)
 
 
 class TaskListSerializer(serializers.ModelSerializer):
@@ -107,6 +123,7 @@ class TaskListSerializer(serializers.ModelSerializer):
             "for_today",
             "template",
             "template_title",
+            "notion_url",
         )
 
     tags = PrimaryKeyRelatedField(queryset=Tag.objects.all(), many=True, allow_null=True, required=False)
@@ -114,6 +131,10 @@ class TaskListSerializer(serializers.ModelSerializer):
     # Lets the list mark tasks generated from a recurring template (see add-recurring-tasks).
     template = PrimaryKeyRelatedField(read_only=True)
     template_title = serializers.CharField(source="template.title", read_only=True, default=None)
+    notion_url = serializers.SerializerMethodField()
+
+    def get_notion_url(self, task):
+        return notion_page_url(task)
 
 
 class ProjectSerializer(serializers.ModelSerializer):

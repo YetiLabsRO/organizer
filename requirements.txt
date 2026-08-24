@@ -58,6 +58,7 @@ colorama==0.4.6 ; sys_platform == 'win32'
 cryptography==49.0.0
     # via
     #   jwcrypto
+    #   organizer
     #   pyjwt
 dj-rest-auth==7.2.0
     # via organizer
@@ -92,7 +93,9 @@ httpcore==1.0.9
 httptools==0.8.0
     # via uvicorn
 httpx==0.28.1
-    # via mcp
+    # via
+    #   mcp
+    #   organizer
 httpx-sse==0.4.3
     # via mcp
 idna==3.18

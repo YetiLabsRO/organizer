@@ -20,6 +20,10 @@ dependencies = [
     "redis>=8.0.1",
     "channels>=4.3.2",
     "channels-redis>=4.3.0",
+    # Third-party integration clients (integrations/): HTTP to external APIs, and Fernet
+    # encryption for the OAuth credentials those integrations store per user.
+    "httpx>=0.28",
+    "cryptography>=45.0",
 ]
 
 [dependency-groups]

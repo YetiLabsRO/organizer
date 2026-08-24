@@ -33,5 +33,7 @@ export interface Task {
   // The recurring template that generated this task (read-only; see add-recurring-tasks).
   template?: number;
   template_title?: string;
+  // Set when the task is mirrored to Notion; links straight to its page there (read-only).
+  notion_url?: string | null;
   comments?: TaskComment[];
 }
