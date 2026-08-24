@@ -71,6 +71,10 @@ describe('TaskListComponent', () => {
       expect(addTask).toHaveBeenCalledWith(expect.objectContaining({ title: 'Fix the nav', project: 4 }));
     });
 
+    it('drops the project chip from the rows — the whole list is that project', () => {
+      expect(component.projectName(makeTask(1, { project: 4 }))).toBe('');
+    });
+
     it('lets an explicit @project token win over the scope', () => {
       const addTask = vi.spyOn(taskService, 'addTask').mockReturnValue(of(makeTask(9)));
 

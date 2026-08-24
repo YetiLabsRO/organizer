@@ -1,6 +1,6 @@
 import {
-  ChangeDetectionStrategy, Component, ElementRef, Input, OnDestroy, OnInit, computed, effect, inject, signal,
-  untracked, viewChild,
+  ChangeDetectionStrategy, Component, ElementRef, Input, OnDestroy, OnInit, booleanAttribute, computed, effect,
+  inject, signal, untracked, viewChild,
 } from '@angular/core';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { NgClass, DatePipe } from '@angular/common';
@@ -41,7 +41,10 @@ const EDITABLE_SELECTOR = 'input, textarea, select, [contenteditable]:not([conte
   ],
   templateUrl: './task-list.component.html',
   styleUrls: ['./task-list.component.css'],
-  host: { '(document:keydown)': 'onKeydown($event)' },
+  host: {
+    '(document:keydown)': 'onKeydown($event)',
+    '[class.embedded]': 'embedded',
+  },
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class TaskListComponent implements OnInit, OnDestroy {
@@ -81,6 +84,12 @@ export class TaskListComponent implements OnInit, OnDestroy {
 
   @Input() filters_tags: Tag[] | null = null;
   @Input() for_tag: Tag | null = null;
+
+  /**
+   * The list sits under a page header (project / tag detail) instead of owning the page. Drops the
+   * full-viewport height so the panel fits its slice of the page — see the `.embedded` styles.
+   */
+  @Input({ transform: booleanAttribute }) embedded = false;
 
   private _project: number | null = null;
 
@@ -292,9 +301,15 @@ export class TaskListComponent implements OnInit, OnDestroy {
     return deadlineInfo(task);
   }
 
-  /** Resolve a task's project id to its title (empty when none/unloaded). */
+  /**
+   * Resolve a task's project id to its title (empty when none/unloaded).
+   *
+   * A list already scoped to one project says nothing by repeating it on every row, and the chip
+   * is one of the widest things competing for the row — so it is dropped there.
+   */
   projectName(task: Task): string {
-    return task.project != null ? (this.projectNames().get(task.project) ?? '') : '';
+    if (this._project != null || task.project == null) return '';
+    return this.projectNames().get(task.project) ?? '';
   }
 
   onQuickAdd(request: NewTaskRequest): void {

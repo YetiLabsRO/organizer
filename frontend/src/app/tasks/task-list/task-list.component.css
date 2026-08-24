@@ -15,6 +15,22 @@
   }
 }
 
+/*
+ * Embedded under a page header (project / tag detail) the list is no longer the whole page, so a
+ * full viewport height would push its panel — scrollbar and all — below the fold and leave the page
+ * scrolling behind the list's own scroller. Size the panel to a slice of the window instead and let
+ * the host grow with it.
+ */
+:host(.embedded) {
+  height: auto;
+  min-height: 0;
+}
+
+:host(.embedded) .task-viewport {
+  height: 60dvh;
+  min-height: 320px;
+}
+
 /* Page title uses the display face, matching the Focus screen and sidebar brand. */
 :host h1 {
   font-family: var(--org-font-heading);
@@ -31,6 +47,22 @@
   background: var(--org-surface);
   border: 1px solid var(--org-border);
   border-radius: var(--org-radius);
+}
+
+/*
+ * Pin the rows to the viewport's width.
+ *
+ * The CDK's content wrapper is `position: absolute` with `min-width: 100%`, so it shrink-to-fits —
+ * and shrink-to-fit takes the *larger* of the available width and the content's min-content width.
+ * One row whose min-content runs wide (a long title: it is `nowrap` on desktop, so its min-content
+ * is the whole string) therefore widens the wrapper for every row, and since the viewport clips
+ * horizontally the right-hand column — the action buttons — is pushed out of sight.
+ *
+ * Capping the wrapper puts the row back inside the viewport, where the flex children shrink as
+ * intended (the title ellipsises, the meta line clips) and the buttons stay visible.
+ */
+:host ::ng-deep .cdk-virtual-scroll-content-wrapper {
+  max-width: 100%;
 }
 
 .task-row {
