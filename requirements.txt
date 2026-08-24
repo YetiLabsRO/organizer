@@ -55,7 +55,7 @@ click-repl==0.3.0
     # via celery
 colorama==0.4.6 ; sys_platform == 'win32'
     # via click
-cryptography==49.0.0
+cryptography==50.0.0
     # via
     #   jwcrypto
     #   organizer
@@ -167,7 +167,7 @@ rpds-py==2026.6.3
     #   referencing
 six==1.17.0
     # via python-dateutil
-sqlparse==0.5.5
+sqlparse==0.6.0
     # via django
 sse-starlette==3.4.5
     # via mcp

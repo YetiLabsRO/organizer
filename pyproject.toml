@@ -23,8 +23,14 @@ dependencies = [
     # Third-party integration clients (integrations/): HTTP to external APIs, and Fernet
     # encryption for the OAuth credentials those integrations store per user.
     "httpx>=0.28",
-    "cryptography>=45.0",
+    # >=50 for CVE-2026-69247.
+    "cryptography>=50.0",
 ]
+
+[tool.uv]
+# sqlparse is a transitive dependency (Django). 0.6.0 fixes CVE-2026-54284, CVE-2026-59893,
+# CVE-2026-59894 and CVE-2026-71491; constrain the floor without declaring a direct dependency.
+constraint-dependencies = ["sqlparse>=0.6.0"]
 
 [dependency-groups]
 dev = [
