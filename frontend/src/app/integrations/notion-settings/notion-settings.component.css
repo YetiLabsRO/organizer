@@ -1,0 +1,53 @@
+:host h1,
+:host h2 {
+  font-family: var(--org-font-heading);
+  font-weight: 700;
+}
+
+.card {
+  background: var(--org-surface);
+  border: 1px solid var(--org-border);
+  border-radius: var(--org-radius);
+}
+
+.workspace {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.workspace-icon {
+  width: 28px;
+  height: 28px;
+  border-radius: 6px;
+  object-fit: cover;
+}
+
+.muted {
+  color: var(--org-text-muted, #9aa4b2);
+}
+
+/* The disclosure list is the point of this screen as much as the buttons are — deletion is
+   symmetric and the page body is never synced, and neither is guessable from the UI. */
+.disclosures {
+  list-style: none;
+  padding-left: 0;
+  margin-bottom: 0;
+}
+
+.disclosures li {
+  display: flex;
+  gap: 0.5rem;
+  padding: 0.35rem 0;
+  color: var(--org-text-muted, #9aa4b2);
+}
+
+.disclosures .bi {
+  flex: 0 0 auto;
+  margin-top: 0.2rem;
+}
+
+.progress {
+  background: var(--org-bg);
+  height: 0.5rem;
+}

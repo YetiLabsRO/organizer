@@ -38,4 +38,10 @@ export const routes: Routes = [
   { path: 'templates', component: TemplateListComponent, canActivate: [AuthenticatedGuard] },
   { path: 'templates/edit', component: TemplateFormComponent, canActivate: [AuthenticatedGuard] },
   { path: 'templates/:id/edit', component: TemplateFormComponent, canActivate: [AuthenticatedGuard] },
+  {
+    path: 'settings/integrations',
+    loadComponent: () =>
+      import('./integrations/notion-settings/notion-settings.component').then((m) => m.NotionSettingsComponent),
+    canActivate: [AuthenticatedGuard],
+  },
 ];

@@ -69,6 +69,11 @@
                 <svg class="bi" width="12" height="12" role="img"><use xlink:href="bootstrap-icons/bootstrap-icons.svg#arrow-repeat"></use></svg>
               </a>
             }
+            @if (task.notion_url) {
+              <a class="flex-shrink-0 text-secondary lh-1" [href]="task.notion_url" target="_blank" rel="noopener" title="Synced with Notion — open the page" aria-label="Synced with Notion — open the page" (click)="$event.stopPropagation()">
+                <svg class="bi" width="12" height="12" role="img"><use xlink:href="bootstrap-icons/bootstrap-icons.svg#box-arrow-up-right"></use></svg>
+              </a>
+            }
           </div>
 
           <div class="task-meta d-flex align-items-center gap-2">

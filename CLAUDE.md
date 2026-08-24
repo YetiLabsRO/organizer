@@ -45,6 +45,19 @@ consolidated in-tree from the now-deprecated `organizer-ui` repository.
   synchronous service layer (`mcp_server/service.py`), owner-scoped like the task API. Served under
   **ASGI** (`organizer/asgi.py` routes `/mcp` + the protected-resource metadata to the MCP app,
   `/ws/` to Channels, everything else to Django). See the Authentication section for the OAuth flow.
+- **Notion sync** (`integrations/notion/`) — an optional two-way sync between a user's tasks and a
+  Notion database. Organizer is an OAuth 2.0 **client** here (confidential, HTTP Basic at the token
+  endpoint, no PKCE, no dynamic registration — the integration is registered by hand once). It
+  **creates its own empty Notion database** rather than adopting one, so it owns the schema and the
+  field mapping is near-total. Pinned to Notion API `2025-09-03`, so rows are addressed through
+  `/v1/data_sources/{id}/…`. Syncing runs on Celery beat (`integrations.notion.sync_all`), plus
+  `manage.py sync_notion` and a "Sync now" endpoint. Three things carry the design: **echo
+  suppression** (a page whose `last_edited_by` is our own `bot_id` is our own write, so it is
+  skipped), **watermark re-stamping after every write** (`changed_date` is `auto_now`, so without it
+  the sync reads its own writes back forever), and Notion's **minute-rounded `last_edited_time`**
+  (hence an overlapping pull window, idempotent applies, and an Organizer-wins tie-break for
+  same-minute conflicts). Deletions made in Notion are only visible to the periodic **full
+  reconciliation**. See `docs/notion.md`.
 - **Real-time task sync** — a WebSocket at `/ws/tasks/` (Django Channels) pushes `task.created` /
   `task.updated` / `task.deleted` events to a user's other open clients. Broadcasts come from
   **`TaskItem` model signals** (`tasks/signals.py`) on `transaction.on_commit`, so the REST API, the
@@ -90,6 +103,8 @@ uv run ruff check .                       # lint  (config in pyproject.toml)
 uv run ruff format .                      # format
 uv export --format requirements-txt --no-hashes --no-dev -o requirements.txt   # refresh prod reqs
 
+uv run python manage.py sync_notion [--user <id>] [--full]   # Notion sync (docs/notion.md)
+
 # Frontend (see frontend/CLAUDE.md)
 cd frontend && npm install && npm start   # ng serve on :4200
 ```
@@ -101,7 +116,8 @@ grant `read`/`write`. Tests: `manage.py test mcp_server`.
 
 Configuration is read from a `.env` file at the repo root via **python-decouple** (see
 `.env.example` for the keys: `SECRET_KEY`, `DEBUG`, `ALLOWED_HOSTS`, `DB_*`, `CORS_ALLOWED_ORIGINS`,
-`MCP_BASE_URL`, `OAUTH_*_TOKEN_TTL`, `CELERY_BROKER_URL`, `CHANNELS_REDIS_URL`). Real OS environment
+`MCP_BASE_URL`, `OAUTH_*_TOKEN_TTL`, `CELERY_BROKER_URL`, `CHANNELS_REDIS_URL`, `NOTION_*`,
+`INTEGRATIONS_TOKEN_KEY`, `FRONTEND_BASE_URL`). Real OS environment
 variables take precedence over the file, so prod/CI inject them directly. Postgres is the only
 supported database (`psycopg` v3).
 

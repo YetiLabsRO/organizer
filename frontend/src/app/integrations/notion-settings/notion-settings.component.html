@@ -1,0 +1,204 @@
+<div class="container-fluid py-3">
+  <h1 class="h3 mb-3">Integrations</h1>
+
+  @if (notice()) {
+    <div class="alert alert-info d-flex justify-content-between align-items-start" role="status">
+      <span>{{ notice() }}</span>
+      <button type="button" class="btn-close" aria-label="Dismiss" (click)="notice.set('')"></button>
+    </div>
+  }
+  @if (error()) {
+    <div class="alert alert-danger d-flex justify-content-between align-items-start" role="alert">
+      <span>{{ error() }}</span>
+      <button type="button" class="btn-close" aria-label="Dismiss" (click)="error.set('')"></button>
+    </div>
+  }
+
+  <div class="card">
+    <div class="card-body">
+      <h2 class="h5 mb-3">Notion</h2>
+
+      @if (loading()) {
+        <p class="muted mb-0">Loading…</p>
+      } @else if (!configured()) {
+        <p class="muted mb-0">
+          Notion sync is not configured on this server. An administrator needs to register a Notion
+          integration and set <code>NOTION_CLIENT_ID</code> and <code>NOTION_CLIENT_SECRET</code>.
+        </p>
+      } @else if (!connected()) {
+        <p class="muted">
+          Sync your tasks two ways with a Notion database that Organizer creates for you. The database
+          starts empty and is filled from your existing tasks.
+        </p>
+        <button type="button" class="btn btn-primary" [disabled]="busy()" (click)="connect()">
+          Connect Notion
+        </button>
+      } @else {
+        <div class="workspace mb-3">
+          @if (connection()?.workspace_icon) {
+            <img class="workspace-icon" [src]="connection()!.workspace_icon" alt="" />
+          }
+          <div>
+            <div class="fw-semibold">{{ connection()?.workspace_name || 'Notion workspace' }}</div>
+            <div class="muted small">
+              @if (connection()?.last_synced_at) {
+                Last synced {{ connection()!.last_synced_at | date: 'medium' }}
+              } @else {
+                Not synced yet
+              }
+            </div>
+          </div>
+        </div>
+
+        @if (needsReauth()) {
+          <div class="alert alert-warning">
+            <strong>Reconnect needed.</strong>
+            Notion is no longer accepting the stored authorization, so syncing is paused.
+            @if (connection()?.last_error) {
+              <div class="small mt-1">{{ connection()!.last_error }}</div>
+            }
+            <div class="mt-2">
+              <button type="button" class="btn btn-sm btn-warning" [disabled]="busy()" (click)="connect()">
+                Reconnect Notion
+              </button>
+            </div>
+          </div>
+        }
+
+        @if (schemaDrift()) {
+          <div class="alert alert-warning">
+            <strong>The Notion database changed.</strong>
+            A property the sync needs no longer exists, so syncing is paused rather than quietly
+            dropping that field.
+            @if (connection()?.last_error) {
+              <div class="small mt-1">{{ connection()!.last_error }}</div>
+            }
+            <div class="small mt-1">
+              Restore the missing property in Notion, then run a sync. Renaming a property is fine —
+              only deleting one causes this.
+            </div>
+            <div class="mt-2">
+              <button type="button" class="btn btn-sm btn-warning" [disabled]="busy()" (click)="syncNow(true)">
+                Retry sync
+              </button>
+            </div>
+          </div>
+        }
+
+        @if (!provisioned()) {
+          <h3 class="h6">Choose where the database goes</h3>
+          @if (pages().length) {
+            <p class="muted small">
+              Organizer will create a new, empty database under the page you pick, then upload your
+              existing tasks into it.
+            </p>
+            <div class="row g-2 align-items-end">
+              <div class="col-sm-8">
+                <label class="form-label" for="notion-parent">Parent page</label>
+                <select id="notion-parent" class="form-select" (change)="selectPage($event)">
+                  @for (page of pages(); track page.id) {
+                    <option [value]="page.id" [selected]="page.id === selectedPageId()">{{ page.title }}</option>
+                  }
+                </select>
+              </div>
+              <div class="col-sm-4">
+                <button
+                  type="button"
+                  class="btn btn-primary w-100"
+                  [disabled]="busy() || !selectedPageId()"
+                  (click)="provision()"
+                >
+                  Create database
+                </button>
+              </div>
+            </div>
+          } @else {
+            <p class="muted">
+              You have not shared any pages with Organizer yet. In Notion, open the page you want the
+              task database to live under, then use <strong>&hellip; → Connections</strong> to give
+              Organizer access — or reconnect and tick the page on Notion's consent screen.
+            </p>
+            <button type="button" class="btn btn-outline-secondary btn-sm" (click)="loadPages()">
+              Check again
+            </button>
+          }
+        } @else {
+          @if (bootstrapping()) {
+            <div class="mb-3">
+              <div class="d-flex justify-content-between small mb-1">
+                <span>Uploading your existing tasks…</span>
+                <span class="muted">{{ connection()?.bootstrap_done }} / {{ connection()?.bootstrap_total }}</span>
+              </div>
+              <div class="progress" role="progressbar" [attr.aria-valuenow]="bootstrapPercent()">
+                <div class="progress-bar" [style.width.%]="bootstrapPercent()"></div>
+              </div>
+              <div class="muted small mt-1">
+                Notion limits how fast we can write, so this takes a few minutes for a large account.
+              </div>
+            </div>
+          }
+
+          <div class="d-flex flex-wrap gap-2 mb-3">
+            <a class="btn btn-outline-primary btn-sm" [href]="connection()?.database_url" target="_blank" rel="noopener">
+              Open in Notion
+            </a>
+            <button type="button" class="btn btn-outline-secondary btn-sm" [disabled]="busy()" (click)="syncNow()">
+              Sync now
+            </button>
+            <button type="button" class="btn btn-outline-secondary btn-sm" [disabled]="busy()" (click)="refresh()">
+              Refresh status
+            </button>
+          </div>
+        }
+
+        <hr />
+        <h3 class="h6">What to expect</h3>
+        <ul class="disclosures small">
+          <li>
+            <svg class="bi" width="14" height="14" aria-hidden="true"><use xlink:href="bootstrap-icons/bootstrap-icons.svg#file-text"></use></svg>
+            <span>
+              Anything you write in the <strong>body</strong> of a Notion task page stays in Notion —
+              it is yours to use freely and is never imported. Only the properties sync.
+            </span>
+          </li>
+          <li>
+            <svg class="bi" width="14" height="14" aria-hidden="true"><use xlink:href="bootstrap-icons/bootstrap-icons.svg#trash"></use></svg>
+            <span>
+              Deleting works both ways: deleting a task here moves its Notion page to the trash, and
+              trashing a page in Notion deletes the task here.
+            </span>
+          </li>
+          <li>
+            <svg class="bi" width="14" height="14" aria-hidden="true"><use xlink:href="bootstrap-icons/bootstrap-icons.svg#tags"></use></svg>
+            <span>
+              Projects and tags typed in Notion are matched against ones that already exist here —
+              new ones are not created, because they are shared with everyone on this server.
+            </span>
+          </li>
+          <li>
+            <svg class="bi" width="14" height="14" aria-hidden="true"><use xlink:href="bootstrap-icons/bootstrap-icons.svg#clock-history"></use></svg>
+            <span>
+              Notion only records edit times to the nearest minute. If both sides change a task within
+              the same minute, Organizer wins.
+            </span>
+          </li>
+          @if (connection()?.can_refresh === false) {
+            <li>
+              <svg class="bi" width="14" height="14" aria-hidden="true"><use xlink:href="bootstrap-icons/bootstrap-icons.svg#exclamation-triangle"></use></svg>
+              <span>Notion did not issue a refresh token, so you may need to reconnect manually later.</span>
+            </li>
+          }
+        </ul>
+
+        <hr />
+        <button type="button" class="btn btn-outline-danger btn-sm" [disabled]="busy()" (click)="disconnect()">
+          Disconnect Notion
+        </button>
+        <div class="muted small mt-2">
+          Disconnecting deletes the stored credentials here. Notion has no way for us to revoke them
+          remotely, so also remove Organizer in Notion under <strong>Settings → Connections</strong>.
+        </div>
+      }
+    </div>
+  </div>
+</div>

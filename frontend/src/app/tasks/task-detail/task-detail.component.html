@@ -32,6 +32,12 @@
           Recurring: {{ t.template_title || 'from template' }}
         </span>
       }
+      @if (t.notion_url) {
+        <a class="badge text-bg-secondary-subtle text-secondary-emphasis border d-inline-flex align-items-center gap-1 text-decoration-none" [href]="t.notion_url" target="_blank" rel="noopener" title="This task is mirrored to Notion. Notes written in the Notion page body stay there and are not imported.">
+          <svg class="bi" width="12" height="12" role="img" aria-label="Notion"><use xlink:href="bootstrap-icons/bootstrap-icons.svg#box-arrow-up-right"></use></svg>
+          Synced with Notion
+        </a>
+      }
     </div>
   }
 

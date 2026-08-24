@@ -72,6 +72,10 @@ INSTALLED_APPS = [
     'channels',
 
     'tasks.apps.TasksConfig',  # was 'tasks'; the AppConfig.ready() wires up the realtime signals
+
+    # Two-way Notion task sync (see integrations/notion/). Optional: unconfigured, it simply
+    # has no connections and its beat task is a no-op.
+    'integrations.notion.apps.NotionConfig',
 ]
 
 MIDDLEWARE = [
@@ -252,6 +256,12 @@ CELERY_BEAT_SCHEDULE = {
         # in .env (e.g. `RECURRING_TASKS_HOUR=6  # 6am`) doesn't crash the worker/beat on startup.
         "schedule": crontab(minute=0, hour=_env_int("RECURRING_TASKS_HOUR", 6)),
     },
+    "sync-notion": {
+        "task": "integrations.notion.sync_all",
+        # Notion rounds `last_edited_time` down to the minute, so polling much faster than this
+        # mostly re-reads the same window. See integrations/notion/sync.py.
+        "schedule": _env_int("NOTION_SYNC_MINUTES", 10) * 60,
+    },
 }
 
 
@@ -295,5 +305,36 @@ OAUTH2_PROVIDER = {
     # work in addition to https web connectors.
     "ALLOWED_REDIRECT_URI_SCHEMES": ["https", "http"],
 }
+
+
+# --- Third-party integrations ------------------------------------------------------------
+# Fernet key encrypting the OAuth credentials integrations store per user (integrations/crypto.py).
+# Shared by every provider, hence the generic name. Unset, a key is derived from SECRET_KEY, which
+# is fine for dev/tests but means rotating SECRET_KEY in production would strand stored tokens.
+# Generate one with:
+#   python -c 'from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())'
+INTEGRATIONS_TOKEN_KEY = _strip_inline_comment(config("INTEGRATIONS_TOKEN_KEY", default=""))
+
+# Where the SPA lives. The Notion OAuth callback is a plain browser navigation, so it has to bounce
+# the user back into the app by absolute URL rather than returning JSON.
+FRONTEND_BASE_URL = _strip_inline_comment(config("FRONTEND_BASE_URL", default="http://localhost:4200")).rstrip("/")
+
+# --- Notion sync (integrations/notion/) --------------------------------------------------
+# Credentials of the *public integration* registered once at https://www.notion.so/my-integrations.
+# Notion has no dynamic client registration, and the redirect URI must match what is registered
+# there exactly (scheme, host, path, trailing slash). Leave the id/secret empty to disable the
+# integration entirely.
+NOTION_CLIENT_ID = _strip_inline_comment(config("NOTION_CLIENT_ID", default=""))
+NOTION_CLIENT_SECRET = _strip_inline_comment(config("NOTION_CLIENT_SECRET", default=""))
+NOTION_REDIRECT_URI = _strip_inline_comment(
+    config("NOTION_REDIRECT_URI", default="http://localhost:8000/integrations/notion/callback/")
+)
+# Pinned API version. 2025-09-03 is the version that split databases into databases + data sources;
+# every row-level call in client.py targets /v1/data_sources/..., which older versions do not have.
+NOTION_API_VERSION = _strip_inline_comment(config("NOTION_API_VERSION", default="2025-09-03"))
+# How often beat runs an incremental sync, and how often a run escalates to a full reconciliation
+# (the only pass that can notice a page trashed in Notion — see sync.py).
+NOTION_SYNC_MINUTES = _env_int("NOTION_SYNC_MINUTES", 10)
+NOTION_FULL_SYNC_HOURS = _env_int("NOTION_FULL_SYNC_HOURS", 24)
 
 

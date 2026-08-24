@@ -2,6 +2,8 @@ from django.contrib import admin
 from django.urls import include, path
 from rest_framework.routers import DefaultRouter
 
+from integrations.notion.urls import api_urlpatterns as notion_api_urls
+from integrations.notion.urls import browser_urlpatterns as notion_browser_urls
 from mcp_server.oauth_views import RegisterClientView, authorization_server_metadata
 from tasks.views import (
     MainAppView,
@@ -26,6 +28,12 @@ urlpatterns = [
     path('', MainAppView.as_view(), {}, "index"),
     path('api/', include(router.urls)),
     path('rest-auth/', include('dj_rest_auth.urls')),
+
+    # Notion sync (integrations/notion/). The DRF endpoints sit under /api/ with everything else;
+    # the OAuth callback deliberately does not, because it is a plain browser navigation with no
+    # DRF token on it — it recovers the user from the single-use `state` instead.
+    path('api/integrations/notion/', include((notion_api_urls, 'notion'), namespace='notion-api')),
+    path('integrations/notion/', include((notion_browser_urls, 'notion'), namespace='notion')),
 
     # OAuth 2.1 authorization server for the MCP endpoint (django-oauth-toolkit),
     # plus RFC 8414 metadata and RFC 7591 dynamic client registration (mcp_server/oauth_views.py).
