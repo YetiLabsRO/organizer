@@ -148,6 +148,11 @@ server {
     location /.well-known/oauth-authorization-server { proxy_pass http://127.0.0.1:8000; proxy_set_header Host $host; proxy_set_header X-Forwarded-Proto $scheme; }
     location /.well-known/oauth-protected-resource   { proxy_pass http://127.0.0.1:8000; proxy_set_header Host $host; proxy_set_header X-Forwarded-Proto $scheme; }
 
+    # Third-party OAuth callbacks (Notion sync). Same reason as /o/ above: these are plain browser
+    # navigations, so without this block `location /` serves the SPA and the callback never reaches
+    # Django — the flow ends on a blank page and no tokens are stored.
+    location /integrations/ { proxy_pass http://127.0.0.1:8000; proxy_set_header Host $host; proxy_set_header X-Forwarded-Proto $scheme; }
+
     # MCP endpoint — must stream (SSE): no buffering, long read timeout, HTTP/1.1 keep-alive.
     location /mcp {
         proxy_pass http://127.0.0.1:8000;

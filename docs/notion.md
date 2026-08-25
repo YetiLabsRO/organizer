@@ -63,6 +63,23 @@ python -c 'from cryptography.fernet import Fernet; print(Fernet.generate_key().d
 > convenient for development, but it means rotating `SECRET_KEY` silently strands every stored
 > token and every user has to reconnect.
 
+### Reverse proxy (production)
+
+The OAuth callback is a plain browser navigation to the **backend**, so your reverse proxy has to
+send `/integrations/` to Django. If the SPA's catch-all `location /` swallows it, Notion redirects
+the user to a blank page and no credentials are ever stored — the flow appears to do nothing.
+
+```nginx
+location /integrations/ { proxy_pass http://127.0.0.1:8000; proxy_set_header Host $host; proxy_set_header X-Forwarded-Proto $scheme; }
+```
+
+Verify with:
+
+```bash
+curl -sSi "https://<your-host>/integrations/notion/callback/?state=x&code=x" | head -3
+# 302 → reaching Django (correct). 200 + <app-root> → the SPA is swallowing it.
+```
+
 Then apply migrations and make sure Celery beat is running (it is what drives periodic syncing):
 
 ```bash
