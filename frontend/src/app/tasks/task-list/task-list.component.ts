@@ -26,6 +26,7 @@ import { KeyboardShortcutsComponent, ShortcutGroup } from '../../shared/keyboard
 import {
   DeadlineInfo, PriorityFlag, deadlineInfo, listStatusMeta, priorityFlag, priorityRowClass,
 } from '../task-meta';
+import { VolunHubBadgeComponent } from '../../integrations/volunhub-badge/volunhub-badge.component';
 
 /** `Ctrl+<digit>` → the filter toggle it drives. */
 const FILTER_KEYS: { [digit: string]: string } = { '1': 'todo', '2': 'completed', '3': 'today' };
@@ -37,7 +38,7 @@ const EDITABLE_SELECTOR = 'input, textarea, select, [contenteditable]:not([conte
   selector: 'app-task-list',
   imports: [
     FormsModule, NgClass, DatePipe, RouterLink, TagColorPipe, ScrollingModule,
-    TaskQuickAddComponent, MarkdownComponent, KeyboardShortcutsComponent,
+    TaskQuickAddComponent, MarkdownComponent, KeyboardShortcutsComponent, VolunHubBadgeComponent,
   ],
   templateUrl: './task-list.component.html',
   styleUrls: ['./task-list.component.css'],

@@ -76,6 +76,9 @@ INSTALLED_APPS = [
     # Two-way Notion task sync (see integrations/notion/). Optional: unconfigured, it simply
     # has no connections and its beat task is a no-op.
     'integrations.notion.apps.NotionConfig',
+    # Two-way VolunHub task sync (see integrations/volunhub/). Needs no credentials of its own: it
+    # registers itself with VolunHub on the first connect.
+    'integrations.volunhub.apps.VolunHubConfig',
 ]
 
 MIDDLEWARE = [
@@ -262,6 +265,12 @@ CELERY_BEAT_SCHEDULE = {
         # mostly re-reads the same window. See integrations/notion/sync.py.
         "schedule": _env_int("NOTION_SYNC_MINUTES", 10) * 60,
     },
+    "sync-volunhub": {
+        "task": "integrations.volunhub.sync_all",
+        # Every run reads the user's full assigned-task listing (VolunHub has no changed-since
+        # filter), so this is a poll interval, not a watermark. See integrations/volunhub/sync.py.
+        "schedule": _env_int("VOLUNHUB_SYNC_MINUTES", 10) * 60,
+    },
 }
 
 
@@ -337,4 +346,15 @@ NOTION_API_VERSION = _strip_inline_comment(config("NOTION_API_VERSION", default=
 NOTION_SYNC_MINUTES = _env_int("NOTION_SYNC_MINUTES", 10)
 NOTION_FULL_SYNC_HOURS = _env_int("NOTION_FULL_SYNC_HOURS", 24)
 
-
+# --- VolunHub sync (integrations/volunhub/) ----------------------------------------------
+# Organizer is an OAuth 2.1 *public* client of VolunHub's confined task-aggregator API. It registers
+# itself once per (base URL, redirect URI) via dynamic client registration, so nothing has to be
+# provisioned by hand; VOLUNHUB_CLIENT_ID only overrides that for an out-of-band registration. The
+# redirect URI is declared at registration and must be the public URL of the callback. Set
+# VOLUNHUB_BASE_URL empty to disable the integration.
+VOLUNHUB_BASE_URL = _strip_inline_comment(config("VOLUNHUB_BASE_URL", default="https://volunhub.scout.ro")).rstrip("/")
+VOLUNHUB_REDIRECT_URI = _strip_inline_comment(
+    config("VOLUNHUB_REDIRECT_URI", default="http://localhost:8000/integrations/volunhub/callback/")
+)
+VOLUNHUB_CLIENT_ID = _strip_inline_comment(config("VOLUNHUB_CLIENT_ID", default=""))
+VOLUNHUB_SYNC_MINUTES = _env_int("VOLUNHUB_SYNC_MINUTES", 10)

@@ -41,7 +41,7 @@ export const routes: Routes = [
   {
     path: 'settings/integrations',
     loadComponent: () =>
-      import('./integrations/notion-settings/notion-settings.component').then((m) => m.NotionSettingsComponent),
+      import('./integrations/integrations-page/integrations-page.component').then((m) => m.IntegrationsPageComponent),
     canActivate: [AuthenticatedGuard],
   },
 ];

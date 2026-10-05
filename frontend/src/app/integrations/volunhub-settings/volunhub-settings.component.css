@@ -1,0 +1,8 @@
+.project-map td,
+.project-map th {
+  vertical-align: middle;
+}
+
+.project-map .form-select {
+  min-width: 12rem;
+}

@@ -1,0 +1,201 @@
+<div class="card mt-3">
+  <div class="card-body">
+    <h2 class="h5 mb-3">VolunHub</h2>
+
+    @if (notice()) {
+      <div class="alert alert-info d-flex justify-content-between align-items-start" role="status">
+        <span>{{ notice() }}</span>
+        <button type="button" class="btn-close" aria-label="Dismiss" (click)="notice.set('')"></button>
+      </div>
+    }
+    @if (error()) {
+      <div class="alert alert-danger d-flex justify-content-between align-items-start" role="alert">
+        <span>{{ error() }}</span>
+        <button type="button" class="btn-close" aria-label="Dismiss" (click)="error.set('')"></button>
+      </div>
+    }
+
+    @if (loading()) {
+      <p class="muted mb-0">Loading…</p>
+    } @else if (!configured()) {
+      <p class="muted mb-0">
+        VolunHub sync is disabled on this server. An administrator needs to set
+        <code>VOLUNHUB_BASE_URL</code>.
+      </p>
+    } @else if (!connected()) {
+      <p class="muted">
+        Bring the tasks assigned to you in VolunHub into Organizer and keep them in sync both ways.
+        You will log in to VolunHub and approve two permissions: reading your tasks and projects, and
+        changing your tasks.
+      </p>
+      <button type="button" class="btn btn-primary" [disabled]="busy()" (click)="connect()">Connect VolunHub</button>
+    } @else {
+      <div class="mb-3">
+        <div class="fw-semibold">{{ connection()?.base_url }}</div>
+        <div class="muted small">
+          @if (connection()?.last_synced_at) {
+            Last synced {{ connection()!.last_synced_at | date: 'medium' }}
+          } @else {
+            Not synced yet
+          }
+          · {{ connection()?.linked_tasks ?? 0 }} synced
+          @if (connection()?.removed_tasks) {
+            · {{ connection()!.removed_tasks }} removed from VolunHub
+          }
+          @if (connection()?.task_errors) {
+            · <span class="text-warning">{{ connection()!.task_errors }} with sync errors</span>
+          }
+        </div>
+      </div>
+
+      @if (needsReauth()) {
+        <div class="alert alert-warning">
+          <strong>Reconnect needed.</strong>
+          VolunHub is no longer accepting the stored authorization, so syncing is paused.
+          @if (connection()?.last_error) {
+            <div class="small mt-1">{{ connection()!.last_error }}</div>
+          }
+          <div class="mt-2">
+            <button type="button" class="btn btn-sm btn-warning" [disabled]="busy()" (click)="connect()">
+              Reconnect VolunHub
+            </button>
+          </div>
+        </div>
+      }
+
+      @if (readOnly()) {
+        <div class="alert alert-warning">
+          <strong>Read-only.</strong>
+          The permission to change your tasks was not granted, so edits made here are not sent to
+          VolunHub. Reconnect and keep both permissions ticked to sync both ways.
+          <div class="mt-2">
+            <button type="button" class="btn btn-sm btn-warning" [disabled]="busy()" (click)="connect()">
+              Reconnect VolunHub
+            </button>
+          </div>
+        </div>
+      }
+
+      @if (contentPushDisabled()) {
+        <div class="alert alert-warning">
+          <strong>Only status changes are sent to VolunHub.</strong>
+          VolunHub refused an edit to a task's title, description, dates or priority, so those now
+          only flow from VolunHub to here. Status changes still go both ways.
+          <div class="mt-2">
+            <button type="button" class="btn btn-sm btn-warning" [disabled]="busy()" (click)="syncNow(true)">
+              Retry content sync
+            </button>
+          </div>
+        </div>
+      }
+
+      @if (!needsReauth() && !contentPushDisabled() && connection()?.last_error) {
+        <div class="alert alert-warning small">{{ connection()!.last_error }}</div>
+      }
+
+      <div class="d-flex flex-wrap gap-2 mb-3">
+        <a class="btn btn-outline-primary btn-sm" [href]="connection()?.base_url + '/proiecte/task-uri/ale-mele/'" target="_blank" rel="noopener">
+          Open my tasks in VolunHub
+        </a>
+        <button type="button" class="btn btn-outline-secondary btn-sm" [disabled]="busy() || needsReauth()" (click)="syncNow()">
+          Sync now
+        </button>
+        <button type="button" class="btn btn-outline-secondary btn-sm" [disabled]="busy()" (click)="refresh()">
+          Refresh status
+        </button>
+      </div>
+
+      @if (projectLinks().length) {
+        <h3 class="h6">Projects</h3>
+        <p class="muted small">
+          A project is created here the first time a task from it arrives. If you already had a
+          matching project, merge it: its tasks move over and the created one is removed.
+        </p>
+        <div class="table-responsive mb-3">
+          <table class="table table-sm project-map">
+            <thead>
+              <tr>
+                <th scope="col">VolunHub project</th>
+                <th scope="col">Organizer project</th>
+              </tr>
+            </thead>
+            <tbody>
+              @for (link of projectLinks(); track link.external_id) {
+                <tr>
+                  <td>{{ link.external_name || link.external_slug }}</td>
+                  <td>
+                    <select
+                      class="form-select form-select-sm"
+                      [attr.aria-label]="'Organizer project for ' + link.external_name"
+                      [disabled]="busy()"
+                      (change)="merge(link, $event)"
+                    >
+                      @if (link.project_id === null) {
+                        <option value="" selected>(none — pick a project)</option>
+                      }
+                      @for (project of localProjects(); track project.id) {
+                        <option [value]="project.id" [selected]="project.id === link.project_id">
+                          {{ project.title }}{{ project.id === link.project_id && link.auto_created ? ' (created by sync)' : '' }}
+                        </option>
+                      }
+                    </select>
+                  </td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+      }
+
+      <hr />
+      <h3 class="h6">What to expect</h3>
+      <ul class="disclosures small">
+        <li>
+          <svg class="bi" width="14" height="14" aria-hidden="true"><use xlink:href="bootstrap-icons/bootstrap-icons.svg#person-check"></use></svg>
+          <span>
+            Only tasks <strong>assigned to you personally</strong> come in — not tasks you only
+            reported or watch, and not tasks assigned just to a team you are in.
+          </span>
+        </li>
+        <li>
+          <svg class="bi" width="14" height="14" aria-hidden="true"><use xlink:href="bootstrap-icons/bootstrap-icons.svg#arrow-left-right"></use></svg>
+          <span>
+            Title, description, start date, deadline, estimate, priority and status sync both ways.
+            If the same field changed on both sides between syncs, the value from Organizer wins.
+          </span>
+        </li>
+        <li>
+          <svg class="bi" width="14" height="14" aria-hidden="true"><use xlink:href="bootstrap-icons/bootstrap-icons.svg#bell"></use></svg>
+          <span>Every change sent to VolunHub notifies that task's watchers there, as if you had made it in VolunHub.</span>
+        </li>
+        <li>
+          <svg class="bi" width="14" height="14" aria-hidden="true"><use xlink:href="bootstrap-icons/bootstrap-icons.svg#shield-check"></use></svg>
+          <span>
+            Organizer never creates or deletes tasks in VolunHub. Deleting a VolunHub task here only
+            stops syncing it. A task unassigned or deleted in VolunHub stays here, marked as removed.
+          </span>
+        </li>
+        <li>
+          <svg class="bi" width="14" height="14" aria-hidden="true"><use xlink:href="bootstrap-icons/bootstrap-icons.svg#house-lock"></use></svg>
+          <span>
+            Some things stay local: the “given up” status (VolunHub has no equivalent), tags,
+            sub-tasks, “for today”, and moving a task to another project here.
+          </span>
+        </li>
+        <li>
+          <svg class="bi" width="14" height="14" aria-hidden="true"><use xlink:href="bootstrap-icons/bootstrap-icons.svg#diagram-2"></use></svg>
+          <span>Tasks from VolunHub are not mirrored to Notion, so each task has a single external home.</span>
+        </li>
+      </ul>
+
+      <hr />
+      <button type="button" class="btn btn-outline-danger btn-sm" [disabled]="busy()" (click)="disconnect()">
+        Disconnect VolunHub
+      </button>
+      <div class="muted small mt-2">
+        Disconnecting revokes Organizer's access in VolunHub and deletes the stored credentials. Your
+        imported tasks stay here.
+      </div>
+    }
+  </div>
+</div>

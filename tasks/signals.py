@@ -44,6 +44,18 @@ def _broadcast_saved(task_id, owner_id, created):
     )
 
 
+def broadcast_task_updated(task):
+    """Push a fresh ``task.updated`` for a change that did not go through ``TaskItem.save()``.
+
+    For state that lives beside the task — e.g. an integration link changing what the task's badge
+    says — where saving the task would only bump ``changed_date`` to say nothing new.
+    """
+    if task.owner_id is None:
+        return
+    task_id, owner_id = task.pk, task.owner_id
+    transaction.on_commit(lambda: _broadcast_saved(task_id, owner_id, False))
+
+
 @receiver(post_save, sender=TaskItem, dispatch_uid="tasks.realtime.task_saved")
 def task_saved(sender, instance, created, **kwargs):
     owner_id = instance.owner_id

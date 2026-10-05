@@ -35,8 +35,8 @@ class TaskItemViewSet(viewsets.ModelViewSet):
 
     def get_queryset(self):
         # Scope to the authenticated owner; a personal organizer only ever shows your own tasks.
-        # `notion_link` is joined so the Notion badge does not cost a query per row.
-        return super().get_queryset().filter(owner=self.request.user).select_related("notion_link")
+        # The integration links are joined so the Notion/VolunHub badges do not cost a query per row.
+        return super().get_queryset().filter(owner=self.request.user).select_related("notion_link", "volunhub_link")
 
     def get_serializer_class(self):
         # The list is windowed and never renders comments — keep that payload light.

@@ -58,6 +58,19 @@ consolidated in-tree from the now-deprecated `organizer-ui` repository.
   (hence an overlapping pull window, idempotent applies, and an Organizer-wins tie-break for
   same-minute conflicts). Deletions made in Notion are only visible to the periodic **full
   reconciliation**. See `docs/notion.md`.
+- **VolunHub sync** (`integrations/volunhub/`) — optional two-way sync of the tasks *assigned to* a
+  user in VolunHub. Organizer is an OAuth 2.1 **public** client here (PKCE S256, no secret) that
+  **registers itself** via RFC 7591 once per deployment + redirect URI, requesting exactly
+  `mcp:tasks:read mcp:tasks:write` (fails closed otherwise — that scope set is what confines the
+  token to VolunHub's tasks/projects API). Refresh tokens rotate with no reuse grace, so refreshes are
+  serialized on the connection row. VolunHub doesn't timestamp status changes and has no
+  changed-since filter, so every run reads the **full** assigned-task listing and does a **per-field
+  three-way merge against a stored snapshot** (Organizer wins true conflicts; echo suppression falls
+  out of the snapshot). It **never creates or deletes** upstream: tasks removed in VolunHub are kept
+  and marked, local deletes leave a tombstone. VolunHub projects are auto-created as (global)
+  `Project`s and can be merged into existing ones. VolunHub-linked tasks are excluded from the Notion
+  sync. Celery beat `integrations.volunhub.sync_all`, `manage.py sync_volunhub`. See
+  `docs/volunhub.md`.
 - **Real-time task sync** — a WebSocket at `/ws/tasks/` (Django Channels) pushes `task.created` /
   `task.updated` / `task.deleted` events to a user's other open clients. Broadcasts come from
   **`TaskItem` model signals** (`tasks/signals.py`) on `transaction.on_commit`, so the REST API, the
@@ -104,6 +117,7 @@ uv run ruff format .                      # format
 uv export --format requirements-txt --no-hashes --no-dev -o requirements.txt   # refresh prod reqs
 
 uv run python manage.py sync_notion [--user <id>] [--full]   # Notion sync (docs/notion.md)
+uv run python manage.py sync_volunhub [--user <id>]          # VolunHub sync (docs/volunhub.md)
 
 # Frontend (see frontend/CLAUDE.md)
 cd frontend && npm install && npm start   # ng serve on :4200
@@ -116,7 +130,7 @@ grant `read`/`write`. Tests: `manage.py test mcp_server`.
 
 Configuration is read from a `.env` file at the repo root via **python-decouple** (see
 `.env.example` for the keys: `SECRET_KEY`, `DEBUG`, `ALLOWED_HOSTS`, `DB_*`, `CORS_ALLOWED_ORIGINS`,
-`MCP_BASE_URL`, `OAUTH_*_TOKEN_TTL`, `CELERY_BROKER_URL`, `CHANNELS_REDIS_URL`, `NOTION_*`,
+`MCP_BASE_URL`, `OAUTH_*_TOKEN_TTL`, `CELERY_BROKER_URL`, `CHANNELS_REDIS_URL`, `NOTION_*`, `VOLUNHUB_*`,
 `INTEGRATIONS_TOKEN_KEY`, `FRONTEND_BASE_URL`). Real OS environment
 variables take precedence over the file, so prod/CI inject them directly. Postgres is the only
 supported database (`psycopg` v3).

@@ -1,4 +1,5 @@
 import {Tag} from '../tags/tag';
+import {VolunHubSource} from '../integrations/volunhub.model';
 
 export interface TaskComment {
   id?: number;
@@ -35,5 +36,7 @@ export interface Task {
   template_title?: string;
   // Set when the task is mirrored to Notion; links straight to its page there (read-only).
   notion_url?: string | null;
+  // Set when the task came from VolunHub: its link there, and whether it is still synced (read-only).
+  volunhub?: VolunHubSource | null;
   comments?: TaskComment[];
 }

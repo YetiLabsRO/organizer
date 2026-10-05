@@ -4,6 +4,8 @@ from rest_framework.routers import DefaultRouter
 
 from integrations.notion.urls import api_urlpatterns as notion_api_urls
 from integrations.notion.urls import browser_urlpatterns as notion_browser_urls
+from integrations.volunhub.urls import api_urlpatterns as volunhub_api_urls
+from integrations.volunhub.urls import browser_urlpatterns as volunhub_browser_urls
 from mcp_server.oauth_views import RegisterClientView, authorization_server_metadata
 from tasks.views import (
     MainAppView,
@@ -34,6 +36,11 @@ urlpatterns = [
     # DRF token on it — it recovers the user from the single-use `state` instead.
     path('api/integrations/notion/', include((notion_api_urls, 'notion'), namespace='notion-api')),
     path('integrations/notion/', include((notion_browser_urls, 'notion'), namespace='notion')),
+
+    # VolunHub sync (integrations/volunhub/). Same split as Notion: DRF under /api/, the OAuth
+    # callback outside it, recovering the user and the PKCE verifier from `state`.
+    path('api/integrations/volunhub/', include((volunhub_api_urls, 'volunhub'), namespace='volunhub-api')),
+    path('integrations/volunhub/', include((volunhub_browser_urls, 'volunhub'), namespace='volunhub')),
 
     # OAuth 2.1 authorization server for the MCP endpoint (django-oauth-toolkit),
     # plus RFC 8414 metadata and RFC 7591 dynamic client registration (mcp_server/oauth_views.py).
