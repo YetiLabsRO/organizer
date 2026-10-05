@@ -148,7 +148,7 @@ server {
     location /.well-known/oauth-authorization-server { proxy_pass http://127.0.0.1:8000; proxy_set_header Host $host; proxy_set_header X-Forwarded-Proto $scheme; }
     location /.well-known/oauth-protected-resource   { proxy_pass http://127.0.0.1:8000; proxy_set_header Host $host; proxy_set_header X-Forwarded-Proto $scheme; }
 
-    # Third-party OAuth callbacks (Notion sync). Same reason as /o/ above: these are plain browser
+    # Third-party OAuth callbacks (Notion and VolunHub sync). Same reason as /o/ above: these are plain browser
     # navigations, so without this block `location /` serves the SPA and the callback never reaches
     # Django — the flow ends on a blank page and no tokens are stored.
     location /integrations/ { proxy_pass http://127.0.0.1:8000; proxy_set_header Host $host; proxy_set_header X-Forwarded-Proto $scheme; }
@@ -257,3 +257,25 @@ syncing runs on Celery beat; `manage.py sync_notion [--user <id>] [--full]` is t
 Full setup, the field mapping, and the behaviours worth knowing (the Notion page body is never
 synced, deletion is symmetric, projects/tags are matched rather than created) are in
 **[docs/notion.md](docs/notion.md)**.
+
+---
+
+## VolunHub sync (optional)
+
+Organizer can bring in the tasks assigned to a user in [VolunHub](https://volunhub.scout.ro) and keep
+them in sync both ways — content and status — without ever creating or deleting anything there.
+There are no credentials to provision: Organizer registers itself with VolunHub on the first connect
+(OAuth 2.1 dynamic client registration, PKCE, a client confined to the tasks/projects API).
+
+```bash
+# .env
+VOLUNHUB_BASE_URL=https://volunhub.scout.ro
+VOLUNHUB_REDIRECT_URI=https://organizer.example.com/integrations/volunhub/callback/
+FRONTEND_BASE_URL=https://organizer.example.com
+INTEGRATIONS_TOKEN_KEY=...   # shared with Notion; set it in production
+```
+
+The redirect URI must be this deployment's public callback URL (the `/integrations/` nginx block above
+already routes it). Periodic syncing runs on Celery beat; `manage.py sync_volunhub [--user <id>]` is
+the manual fallback. Field mapping, conflict rules, project merging and removal handling are in
+**[docs/volunhub.md](docs/volunhub.md)**.

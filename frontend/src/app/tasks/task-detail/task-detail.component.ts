@@ -11,12 +11,13 @@ import { Tag } from '../../tags/tag';
 import { MarkdownComponent } from '../../shared/markdown/markdown.component';
 import { TagChipsInputComponent } from '../../shared/tag-chips-input/tag-chips-input.component';
 import { ProjectPickerComponent } from '../../shared/project-picker/project-picker.component';
+import { VolunHubBadgeComponent } from '../../integrations/volunhub-badge/volunhub-badge.component';
 
 @Component({
   selector: 'app-task-detail',
   imports: [
     FormsModule, NgClass, DatePipe, RouterLink, MarkdownComponent, TagChipsInputComponent,
-    ProjectPickerComponent,
+    ProjectPickerComponent, VolunHubBadgeComponent,
   ],
   templateUrl: './task-detail.component.html',
   styleUrls: ['./task-detail.component.css'],

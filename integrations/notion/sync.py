@@ -25,6 +25,7 @@ favour rather than pretending the timestamps settle it.
 import logging
 from datetime import UTC, timedelta
 
+from django.apps import apps
 from django.conf import settings
 from django.db import transaction
 from django.utils import timezone
@@ -118,6 +119,19 @@ def sync_connection(connection, *, full=False, client=None):
     return report
 
 
+def _mirrorable_tasks(user):
+    """The user's tasks that Notion may create pages for.
+
+    Tasks carrying a VolunHub link — active *or* removed — are left out so each task has at most
+    one external owner: a removed VolunHub task can come back (reassignment, reconnect), and if
+    Notion had adopted it meanwhile the two syncs would fight over its content and its deletion.
+    """
+    tasks = TaskItem.objects.filter(owner=user)
+    if apps.is_installed("integrations.volunhub"):
+        tasks = tasks.filter(volunhub_link__isnull=True)
+    return tasks
+
+
 def _is_full_sync_due(connection):
     if connection.last_full_sync_at is None:
         return True
@@ -141,7 +155,8 @@ def bootstrap(connection, database, client, names, report=None):
 
     while True:
         batch = list(
-            TaskItem.objects.filter(owner=connection.user, pk__gt=database.bootstrap_cursor)
+            _mirrorable_tasks(connection.user)
+            .filter(pk__gt=database.bootstrap_cursor)
             .order_by("pk")
             .prefetch_related("tags")[:BOOTSTRAP_BATCH]
         )
@@ -366,7 +381,7 @@ def _push(connection, database, client, names, report):
     # 2. New local tasks. Scoped by owner: Project and Tag are global in this app, so a
     #    project-based filter alone would push other users' tasks into this user's workspace.
     unlinked = (
-        TaskItem.objects.filter(owner=connection.user, notion_link__isnull=True).order_by("pk").prefetch_related("tags")
+        _mirrorable_tasks(connection.user).filter(notion_link__isnull=True).order_by("pk").prefetch_related("tags")
     )
     created_links = []
     for task in unlinked:

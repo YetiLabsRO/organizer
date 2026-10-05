@@ -49,6 +49,23 @@ def notion_page_url(task):
     return link.url if link is not None else None
 
 
+def volunhub_source(task):
+    """The task's VolunHub link as the UI needs it, or None when it never came from VolunHub.
+
+    Soft lookup for the same reason as :func:`notion_page_url`. ``state`` is ``active`` while synced
+    and ``removed`` once the task left the user's VolunHub list (``removed_reason`` says why).
+    """
+    link = getattr(task, "volunhub_link", None)
+    if link is None:
+        return None
+    return {
+        "url": link.url,
+        "state": link.state,
+        "removed_reason": link.removed_reason or None,
+        "error": link.last_error or None,
+    }
+
+
 class TaskSerializer(serializers.ModelSerializer):
     class Meta:
         model = TaskItem
@@ -76,6 +93,7 @@ class TaskSerializer(serializers.ModelSerializer):
             "template",
             "template_title",
             "notion_url",
+            "volunhub",
         )
 
     tags = PrimaryKeyRelatedField(queryset=Tag.objects.all(), many=True, allow_null=True, required=False)
@@ -90,9 +108,14 @@ class TaskSerializer(serializers.ModelSerializer):
     parent_task_title = serializers.CharField(source="parent_task.title", read_only=True, default=None)
     # Lets the UI badge a task that is mirrored to Notion and link straight to its page.
     notion_url = serializers.SerializerMethodField()
+    # Badges a task imported from VolunHub (or one removed from it) and links to it there.
+    volunhub = serializers.SerializerMethodField()
 
     def get_notion_url(self, task):
         return notion_page_url(task)
+
+    def get_volunhub(self, task):
+        return volunhub_source(task)
 
 
 class TaskListSerializer(serializers.ModelSerializer):
@@ -124,6 +147,7 @@ class TaskListSerializer(serializers.ModelSerializer):
             "template",
             "template_title",
             "notion_url",
+            "volunhub",
         )
 
     tags = PrimaryKeyRelatedField(queryset=Tag.objects.all(), many=True, allow_null=True, required=False)
@@ -132,9 +156,13 @@ class TaskListSerializer(serializers.ModelSerializer):
     template = PrimaryKeyRelatedField(read_only=True)
     template_title = serializers.CharField(source="template.title", read_only=True, default=None)
     notion_url = serializers.SerializerMethodField()
+    volunhub = serializers.SerializerMethodField()
 
     def get_notion_url(self, task):
         return notion_page_url(task)
+
+    def get_volunhub(self, task):
+        return volunhub_source(task)
 
 
 class ProjectSerializer(serializers.ModelSerializer):
@@ -153,11 +181,31 @@ class ProjectSerializer(serializers.ModelSerializer):
 class TaskTemplateSerializer(serializers.ModelSerializer):
     class Meta:
         model = TaskTemplate
-        fields = ("id", "title", "description", "priority", "estimated_time", "project", "tags",
-                  "frequency", "interval", "day_of_month", "weekdays", "month_of_year",
-                  "start_on", "end_on", "rrule", "lead_time_days", "skip_if_previous_open",
-                  "is_active", "last_generated_occurrence", "schedule_summary", "next_occurrence",
-                  "created_date", "changed_date")
+        fields = (
+            "id",
+            "title",
+            "description",
+            "priority",
+            "estimated_time",
+            "project",
+            "tags",
+            "frequency",
+            "interval",
+            "day_of_month",
+            "weekdays",
+            "month_of_year",
+            "start_on",
+            "end_on",
+            "rrule",
+            "lead_time_days",
+            "skip_if_previous_open",
+            "is_active",
+            "last_generated_occurrence",
+            "schedule_summary",
+            "next_occurrence",
+            "created_date",
+            "changed_date",
+        )
         read_only_fields = ("last_generated_occurrence", "created_date", "changed_date")
 
     tags = PrimaryKeyRelatedField(queryset=Tag.objects.all(), many=True, allow_null=True, required=False)

@@ -74,6 +74,9 @@
                 <svg class="bi" width="12" height="12" role="img"><use xlink:href="bootstrap-icons/bootstrap-icons.svg#box-arrow-up-right"></use></svg>
               </a>
             }
+            @if (task.volunhub) {
+              <app-volunhub-badge class="flex-shrink-0" [source]="task.volunhub" [compact]="true" />
+            }
           </div>
 
           <div class="task-meta d-flex align-items-center gap-2">
