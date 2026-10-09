@@ -18,7 +18,7 @@ Add to `.env` (see `.env.example`):
 
 ```bash
 VOLUNHUB_BASE_URL=https://volunhub.scout.ro
-VOLUNHUB_REDIRECT_URI=https://organizer.example.com/integrations/volunhub/callback/
+# VOLUNHUB_REDIRECT_URI=...    # defaults to <MCP_BASE_URL>/integrations/volunhub/callback/
 VOLUNHUB_SYNC_MINUTES=10
 FRONTEND_BASE_URL=https://organizer.example.com
 INTEGRATIONS_TOKEN_KEY=...      # shared with Notion; encrypts stored tokens
@@ -26,7 +26,9 @@ INTEGRATIONS_TOKEN_KEY=...      # shared with Notion; encrypts stored tokens
 ```
 
 - `VOLUNHUB_REDIRECT_URI` is declared to VolunHub when Organizer registers, and VolunHub matches it
-  byte for byte. It must be the **public** URL of this deployment's callback. Changing it later makes
+  byte for byte. It must be the **public** URL of this deployment's callback. It defaults to
+  `<MCP_BASE_URL>/integrations/volunhub/callback/`, and outside `DEBUG` a `localhost` value is refused
+  at connect time rather than registered. Changing it later makes
   the next connect register a new client; existing connections keep working.
 - `VOLUNHUB_BASE_URL` must be `https` outside `DEBUG`. Leave it empty to disable the integration.
 - Run `migrate`, and make sure a Celery **worker and beat** are running (`sync-volunhub` is in
@@ -167,6 +169,7 @@ is skipped rather than doubled.
 | --- | --- |
 | Connect says registration failed | VolunHub unreachable, or it returned a broader scope than requested (the client is refused on purpose). Check `VOLUNHUB_BASE_URL`. |
 | Blank page after approving in VolunHub | The SPA swallowed the callback — see the nginx check in §1. |
+| VolunHub sends you to `localhost` after approving | The client was registered with a local redirect URI. Set `MCP_BASE_URL` (or `VOLUNHUB_REDIRECT_URI`) to the public URL and restart; the next connect registers a new client automatically. |
 | "Reconnect needed" | The refresh token was revoked or expired (30 days unused). Reconnect. |
 | "Read-only" | The change permission was unticked at consent. Reconnect and keep both ticked. |
 | "Only status changes are sent" | VolunHub refused a content edit (§4). Retry from the banner once VolunHub allows it again. |

@@ -72,6 +72,10 @@
                   <span class="row-status {{ sb.badgeClass }}">{{ sb.label }}</span>
                 }
 
+                @if (task.volunhub) {
+                  <app-volunhub-badge [source]="task.volunhub" [compact]="true" />
+                }
+
                 <span class="row-spacer"></span>
 
                 @if (tagsFor(task).length) {

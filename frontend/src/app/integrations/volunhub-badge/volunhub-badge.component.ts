@@ -5,8 +5,8 @@ import { REMOVED_REASON_LABELS, VolunHubSource } from '../volunhub.model';
 /**
  * Marks a task that came from VolunHub, linking to it there.
  *
- * `compact` is the icon-only form for list rows; the full form is a labelled badge for the detail
- * view. A task removed from VolunHub (unassigned, deleted, or the account disconnected) is kept
+ * `compact` is the chip for list rows — labelled "VolunHub" so a task's origin is visible at a
+ * glance; the full form is the longer badge for the detail view. A task removed from VolunHub (unassigned, deleted, or the account disconnected) is kept
  * locally and shown with a distinct, muted badge that says why.
  */
 @Component({
@@ -15,12 +15,13 @@ import { REMOVED_REASON_LABELS, VolunHubSource } from '../volunhub.model';
   template: `
     @if (source(); as s) {
       @if (compact()) {
-        <a class="lh-1" [class.text-secondary]="!removed()" [class.text-warning]="removed()"
+        <a class="source-chip" [class.removed]="removed()" [class.has-error]="!removed() && !!s.error"
            [href]="s.url" target="_blank" rel="noopener" [title]="title()" [attr.aria-label]="title()"
            (click)="$event.stopPropagation()">
-          <svg class="bi" width="12" height="12" role="img">
-            <use [attr.xlink:href]="'bootstrap-icons/bootstrap-icons.svg#' + (removed() ? 'x-circle' : 'people-fill')"></use>
+          <svg class="bi" width="10" height="10" aria-hidden="true">
+            <use [attr.xlink:href]="'bootstrap-icons/bootstrap-icons.svg#' + chipIcon()"></use>
           </svg>
+          VolunHub
         </a>
       } @else {
         <a class="badge border d-inline-flex align-items-center gap-1 text-decoration-none"
@@ -40,6 +41,41 @@ import { REMOVED_REASON_LABELS, VolunHubSource } from '../volunhub.model';
       }
     }
   `,
+  styles: [
+    `
+      /* List rows: a labelled chip so a task's origin reads at a glance, sized like the status chip. */
+      .source-chip {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.3em;
+        flex-shrink: 0;
+        font-size: 0.68rem;
+        font-weight: 600;
+        line-height: 1.4;
+        padding: 1px 8px;
+        border-radius: var(--org-radius-pill);
+        border: 1px solid var(--org-info);
+        color: var(--org-info-ink);
+        background: transparent;
+        text-decoration: none;
+        white-space: nowrap;
+      }
+      .source-chip:hover {
+        background: var(--org-surface-2);
+      }
+      .source-chip.has-error {
+        border-color: var(--org-warning);
+        color: var(--org-warning-ink);
+      }
+      /* Kept locally but no longer synced: still shows where it came from, visibly detached. */
+      .source-chip.removed {
+        border-style: dashed;
+        border-color: var(--org-border);
+        color: var(--org-text-dim);
+        text-decoration: line-through;
+      }
+    `,
+  ],
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class VolunHubBadgeComponent {
@@ -47,6 +83,13 @@ export class VolunHubBadgeComponent {
   readonly compact = input(false);
 
   readonly removed = computed(() => this.source()?.state === 'removed');
+
+  readonly chipIcon = computed(() => {
+    if (this.removed()) {
+      return 'x-circle';
+    }
+    return this.source()?.error ? 'exclamation-triangle' : 'people-fill';
+  });
 
   readonly label = computed(() => {
     const source = this.source();
