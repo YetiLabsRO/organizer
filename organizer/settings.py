@@ -353,8 +353,10 @@ NOTION_FULL_SYNC_HOURS = _env_int("NOTION_FULL_SYNC_HOURS", 24)
 # redirect URI is declared at registration and must be the public URL of the callback. Set
 # VOLUNHUB_BASE_URL empty to disable the integration.
 VOLUNHUB_BASE_URL = _strip_inline_comment(config("VOLUNHUB_BASE_URL", default="https://volunhub.scout.ro")).rstrip("/")
+# Defaults to this deployment's public URL (MCP_BASE_URL, already required to be public for /mcp),
+# so a server that never sets it does not register a localhost callback with VolunHub.
 VOLUNHUB_REDIRECT_URI = _strip_inline_comment(
-    config("VOLUNHUB_REDIRECT_URI", default="http://localhost:8000/integrations/volunhub/callback/")
+    config("VOLUNHUB_REDIRECT_URI", default=f"{MCP_BASE_URL}/integrations/volunhub/callback/")
 )
 VOLUNHUB_CLIENT_ID = _strip_inline_comment(config("VOLUNHUB_CLIENT_ID", default=""))
 VOLUNHUB_SYNC_MINUTES = _env_int("VOLUNHUB_SYNC_MINUTES", 10)

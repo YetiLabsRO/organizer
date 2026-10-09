@@ -98,6 +98,21 @@ class RegistrationTests(TestCase):
             client = oauth.get_oauth_client()
         self.assertEqual(client.token_endpoint, f"{BASE_URL}/token")
 
+    @override_settings(VOLUNHUB_REDIRECT_URI="http://localhost:8000/integrations/volunhub/callback/", DEBUG=False)
+    def test_local_redirect_uri_is_refused_outside_debug(self):
+        from integrations.volunhub.exceptions import VolunHubNotConfigured
+
+        server = FakeServer()
+        with mock.patch.object(oauth, "_send", server), self.assertRaises(VolunHubNotConfigured):
+            oauth.get_oauth_client()
+        self.assertEqual(server.sent, [])
+        self.assertFalse(VolunHubOAuthClient.objects.exists())
+
+    @override_settings(VOLUNHUB_REDIRECT_URI="http://localhost:8000/integrations/volunhub/callback/", DEBUG=True)
+    def test_local_redirect_uri_is_fine_in_debug(self):
+        with mock.patch.object(oauth, "_send", FakeServer()):
+            self.assertEqual(oauth.get_oauth_client().client_id, "registered-id")
+
     @override_settings(VOLUNHUB_BASE_URL="http://volunhub.example.org", DEBUG=False)
     def test_plain_http_is_refused_outside_debug(self):
         from integrations.volunhub.exceptions import VolunHubNotConfigured

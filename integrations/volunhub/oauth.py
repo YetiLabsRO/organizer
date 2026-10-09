@@ -21,7 +21,7 @@ import hashlib
 import logging
 import secrets
 from datetime import timedelta
-from urllib.parse import urlencode
+from urllib.parse import urlencode, urlparse
 
 import httpx
 from django.conf import settings
@@ -70,6 +70,18 @@ def _require_configured():
         raise VolunHubNotConfigured("VolunHub sync is disabled: set VOLUNHUB_BASE_URL and VOLUNHUB_REDIRECT_URI.")
     if not settings.DEBUG and not settings.VOLUNHUB_BASE_URL.startswith("https://"):
         raise VolunHubNotConfigured("VOLUNHUB_BASE_URL must use https outside DEBUG — it carries bearer tokens.")
+    if not settings.DEBUG and _is_local(settings.VOLUNHUB_REDIRECT_URI):
+        # Registering this would send every user back to their own machine after consenting in
+        # VolunHub — fail at connect time instead, with the fix in the message.
+        raise VolunHubNotConfigured(
+            f"VOLUNHUB_REDIRECT_URI is {settings.VOLUNHUB_REDIRECT_URI!r}, which VolunHub cannot send users back "
+            "to. Set it (or MCP_BASE_URL) to this server's public URL."
+        )
+
+
+def _is_local(url):
+    host = (urlparse(url).hostname or "").lower()
+    return host in ("localhost", "127.0.0.1", "::1", "0.0.0.0") or host.endswith(".localhost")
 
 
 def _send(method, url, **kwargs):

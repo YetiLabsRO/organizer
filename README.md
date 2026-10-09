@@ -270,7 +270,7 @@ There are no credentials to provision: Organizer registers itself with VolunHub 
 ```bash
 # .env
 VOLUNHUB_BASE_URL=https://volunhub.scout.ro
-VOLUNHUB_REDIRECT_URI=https://organizer.example.com/integrations/volunhub/callback/
+# VOLUNHUB_REDIRECT_URI=...   # defaults to <MCP_BASE_URL>/integrations/volunhub/callback/
 FRONTEND_BASE_URL=https://organizer.example.com
 INTEGRATIONS_TOKEN_KEY=...   # shared with Notion; set it in production
 ```
