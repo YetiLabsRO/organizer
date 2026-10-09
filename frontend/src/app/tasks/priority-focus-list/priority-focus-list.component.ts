@@ -20,6 +20,7 @@ import {
   DeadlineInfo, PriorityFlag, deadlineInfo, listStatusMeta, priorityFlag,
   PRIORITY_HIGH, PRIORITY_LOW,
 } from '../task-meta';
+import { VolunHubBadgeComponent } from '../../integrations/volunhub-badge/volunhub-badge.component';
 
 type ViewMode = 'todo' | 'today' | 'completed';
 type BandId = 'urgent' | 'high' | 'normal' | 'low';
@@ -58,7 +59,7 @@ const FETCH_LIMIT = 200;
  */
 @Component({
   selector: 'app-priority-focus-list',
-  imports: [RouterLink, TagColorPipe],
+  imports: [RouterLink, TagColorPipe, VolunHubBadgeComponent],
   templateUrl: './priority-focus-list.component.html',
   styleUrls: ['./priority-focus-list.component.css'],
   changeDetection: ChangeDetectionStrategy.OnPush,

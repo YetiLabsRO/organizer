@@ -64,6 +64,9 @@
             @if (statusBadge(task); as sb) {
               <span class="badge task-chip flex-shrink-0" [ngClass]="sb.badgeClass">{{ sb.label }}</span>
             }
+            @if (task.volunhub) {
+              <app-volunhub-badge class="flex-shrink-0" [source]="task.volunhub" [compact]="true" />
+            }
             @if (task.template) {
               <a class="flex-shrink-0 text-info lh-1" routerLink="/templates/{{ task.template }}/edit" [title]="'Recurring: ' + (task.template_title || 'from template')" aria-label="Recurring task — edit template">
                 <svg class="bi" width="12" height="12" role="img"><use xlink:href="bootstrap-icons/bootstrap-icons.svg#arrow-repeat"></use></svg>
@@ -73,9 +76,6 @@
               <a class="flex-shrink-0 text-secondary lh-1" [href]="task.notion_url" target="_blank" rel="noopener" title="Synced with Notion — open the page" aria-label="Synced with Notion — open the page" (click)="$event.stopPropagation()">
                 <svg class="bi" width="12" height="12" role="img"><use xlink:href="bootstrap-icons/bootstrap-icons.svg#box-arrow-up-right"></use></svg>
               </a>
-            }
-            @if (task.volunhub) {
-              <app-volunhub-badge class="flex-shrink-0" [source]="task.volunhub" [compact]="true" />
             }
           </div>
 

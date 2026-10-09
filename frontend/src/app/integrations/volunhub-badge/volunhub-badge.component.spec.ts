@@ -27,10 +27,23 @@ describe('VolunHubBadgeComponent', () => {
     expect(element.textContent).toContain('Removed from VolunHub (unassigned from you)');
   });
 
-  it('is icon-only when compact, with the label as its accessible name', () => {
+  it('shows a labelled VolunHub chip in list rows', () => {
+    const element = render({ url: 'https://vh/x/', state: 'active', removed_reason: null, error: null }, true);
+    const chip = element.querySelector('a.source-chip')!;
+    expect(chip.textContent?.trim()).toBe('VolunHub');
+    expect(chip.classList).not.toContain('removed');
+  });
+
+  it('keeps the chip for a removed task but marks it detached, with the reason as its name', () => {
     const element = render({ url: 'https://vh/x/', state: 'removed', removed_reason: 'deleted', error: null }, true);
-    const link = element.querySelector('a')!;
-    expect(link.textContent?.trim()).toBe('');
-    expect(link.getAttribute('aria-label')).toContain('deleted in VolunHub');
+    const chip = element.querySelector('a.source-chip')!;
+    expect(chip.textContent?.trim()).toBe('VolunHub');
+    expect(chip.classList).toContain('removed');
+    expect(chip.getAttribute('aria-label')).toContain('deleted in VolunHub');
+  });
+
+  it('flags a sync problem on the chip', () => {
+    const element = render({ url: 'https://vh/x/', state: 'active', removed_reason: null, error: '409' }, true);
+    expect(element.querySelector('a.source-chip')!.classList).toContain('has-error');
   });
 });
