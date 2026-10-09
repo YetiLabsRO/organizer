@@ -54,8 +54,10 @@ import { REMOVED_REASON_LABELS, VolunHubSource } from '../volunhub.model';
         line-height: 1.4;
         padding: 1px 8px;
         border-radius: var(--org-radius-pill);
+        /* The -ink tokens are dark text for *tinted* fills; on the dark list background the chip is
+           outline-only, so its text uses the light accent itself. */
         border: 1px solid var(--org-info);
-        color: var(--org-info-ink);
+        color: var(--org-info);
         background: transparent;
         text-decoration: none;
         white-space: nowrap;
@@ -65,7 +67,7 @@ import { REMOVED_REASON_LABELS, VolunHubSource } from '../volunhub.model';
       }
       .source-chip.has-error {
         border-color: var(--org-warning);
-        color: var(--org-warning-ink);
+        color: var(--org-warning);
       }
       /* Kept locally but no longer synced: still shows where it came from, visibly detached. */
       .source-chip.removed {
