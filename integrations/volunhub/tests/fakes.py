@@ -48,7 +48,7 @@ class FakeVolunHub:
         self.refuse_states = set()
 
     # -- test helpers ------------------------------------------------------------------
-    def add_task(self, *, assigned=True, state="draft", project=None, **fields):
+    def add_task(self, *, assigned=True, state="draft", project=None, created=None, **fields):
         """A task as it exists in VolunHub. ``project`` is ``(id, slug, name)`` or None."""
         task_id = next(self._ids)
         task = {
@@ -65,8 +65,8 @@ class FakeVolunHub:
             "completed": False,  # stale on purpose: transitions never write it
             "state": state,
             "project": project,
-            "changed_date": self.now,
-            "created_date": self.now,
+            "changed_date": fields.pop("changed", None) or self.now,
+            "created_date": created or self.now,
         }
         assert not fields, f"unknown fields {fields}"
         self.tasks[task_id] = task

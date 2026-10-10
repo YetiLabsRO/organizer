@@ -29,10 +29,10 @@ VolunHub gives a sync client very little to work with, and the design follows fr
 """
 
 import logging
+from datetime import timedelta
 
 from django.db import transaction
 from django.utils import timezone
-from django.utils.dateparse import parse_datetime
 
 from integrations.volunhub import mapping
 from integrations.volunhub.client import VolunHubAPI
@@ -133,6 +133,7 @@ def _sync_tasks(connection, api, remote_tasks, report):
             elif link.is_tombstone:
                 continue  # deleted locally: never re-imported, never deleted upstream
             else:
+                _backfill_dates(link.task, remote)
                 _merge(connection, api, link, remote, project_cache, report)
         except VolunHubAuthError:
             raise
@@ -153,14 +154,20 @@ def _import(connection, remote, project_cache, report):
     mapping.apply_to_task(task, values)
     task.project = resolve_project(ref, project_cache)
 
+    created_at, changed_at = mapping.remote_timestamps(remote)
     with transaction.atomic():
         task.save()
+        # auto_now_add / auto_now would date the task to the import, lumping every imported task
+        # together in the list (ordered by changed_date) and in the statistics (by created_date).
+        # A queryset update bypasses both, and the WebSocket payload is read after commit, so it
+        # carries these dates too.
+        dates = {"created_date": created_at or task.created_date, "changed_date": changed_at or task.changed_date}
         if task.completed:
             # MonitorField stamps completed_date with "now", which would pile every historical task
             # onto the import day in the statistics. The last change in VolunHub is the closest
             # thing to a completion time it exposes.
-            completed_at = parse_datetime(remote.get("changed_date") or "") or timezone.now()
-            TaskItem.objects.filter(pk=task.pk).update(completed_date=completed_at)
+            dates["completed_date"] = changed_at or timezone.now()
+        TaskItem.objects.filter(pk=task.pk).update(**dates)
         # Same transaction as the task, so the Notion push never sees it unlinked.
         VolunHubTaskLink.objects.create(
             user=connection.user,
@@ -171,6 +178,30 @@ def _import(connection, remote, project_cache, report):
             last_synced_at=timezone.now(),
         )
     report.created_locally += 1
+
+
+# A task imported before VolunHub's dates were copied has created_date ≈ changed_date ≈ import time.
+# Within this gap it was never edited afterwards, so its changed_date can safely take VolunHub's.
+_UNTOUCHED_SINCE_IMPORT = timedelta(minutes=2)
+
+
+def _backfill_dates(task, remote):
+    """Give a task imported before dates were copied VolunHub's created/changed dates. Idempotent.
+
+    ``created_date`` differing from VolunHub's is the marker — once fixed it never differs again.
+    ``changed_date`` is only moved when nothing has touched the task since its import, so a real
+    later edit (here or applied from VolunHub) keeps its place at the top of the list.
+    """
+    created_at, changed_at = mapping.remote_timestamps(remote)
+    if created_at is None or task.created_date == created_at:
+        return
+    dates = {"created_date": created_at}
+    if changed_at is not None and task.changed_date - task.created_date < _UNTOUCHED_SINCE_IMPORT:
+        dates["changed_date"] = changed_at
+    TaskItem.objects.filter(pk=task.pk).update(**dates)
+    for field, value in dates.items():
+        setattr(task, field, value)
+    broadcast_task_updated(task)
 
 
 def _decide(base, remote, local, *, can_push):

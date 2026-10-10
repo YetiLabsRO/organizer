@@ -5,10 +5,11 @@ changes VolunHub never timestamps, our own writes echoing back, the two-step reo
 listing, and removals that must never destroy local data.
 """
 
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
 
 from django.db import DEFAULT_DB_ALIAS, connections
 from django.test import TestCase, override_settings
+from django.utils import timezone
 
 from integrations.volunhub import sync
 from integrations.volunhub.locks import sync_lock_key
@@ -60,6 +61,31 @@ class ImportTests(SyncTestCase):
         self.assertEqual(task.status, TaskItem.IN_PROGRESS)
         self.assertFalse(task.completed)
 
+    def test_import_keeps_volunhub_created_and_changed_dates(self):
+        created = datetime(2026, 3, 1, 8, 0, tzinfo=UTC)
+        changed = datetime(2026, 6, 15, 12, 30, tzinfo=UTC)
+        task_id = self.fake.add_task(created=created, changed=changed)
+
+        self.run_sync()
+
+        task = TaskItem.objects.get(pk=self.local(task_id).pk)
+        self.assertEqual(task.created_date, created)
+        self.assertEqual(task.changed_date, changed)
+
+    def test_imported_tasks_sort_by_their_volunhub_change_not_the_import(self):
+        self.fake.add_task(
+            title="Old", created=datetime(2025, 1, 1, tzinfo=UTC), changed=datetime(2025, 2, 1, tzinfo=UTC)
+        )
+        self.fake.add_task(
+            title="Recent", created=datetime(2026, 9, 1, tzinfo=UTC), changed=datetime(2026, 9, 30, tzinfo=UTC)
+        )
+        TaskItem.objects.create(owner=self.user, title="Made here")
+
+        self.run_sync()
+
+        order = list(TaskItem.objects.filter(owner=self.user).values_list("title", flat=True))
+        self.assertEqual(order, ["Made here", "Recent", "Old"])
+
     def test_unassigned_tasks_are_not_imported(self):
         self.fake.add_task(assigned=False)
         self.run_sync()
@@ -108,6 +134,49 @@ class ImportTests(SyncTestCase):
         self.connection.mark_needs_reauth("expired")
         self.run_sync()
         self.assertEqual(self.fake.calls, [])
+
+
+class DateBackfillTests(SyncTestCase):
+    """Tasks imported before VolunHub's dates were copied are corrected by the next sync."""
+
+    def import_as_before_the_fix(self, **kwargs):
+        task_id = self.fake.add_task(
+            created=datetime(2026, 2, 1, 9, 0, tzinfo=UTC), changed=datetime(2026, 4, 1, 9, 0, tzinfo=UTC), **kwargs
+        )
+        self.run_sync()
+        imported_at = timezone.now()
+        TaskItem.objects.filter(pk=self.local(task_id).pk).update(created_date=imported_at, changed_date=imported_at)
+        return task_id, imported_at
+
+    def test_untouched_import_gets_both_dates(self):
+        task_id, _ = self.import_as_before_the_fix()
+
+        self.run_sync()
+
+        task = TaskItem.objects.get(pk=self.local(task_id).pk)
+        self.assertEqual(task.created_date, datetime(2026, 2, 1, 9, 0, tzinfo=UTC))
+        self.assertEqual(task.changed_date, datetime(2026, 4, 1, 9, 0, tzinfo=UTC))
+
+    def test_edited_since_import_keeps_its_changed_date(self):
+        task_id, imported_at = self.import_as_before_the_fix()
+        edited_at = imported_at + timedelta(days=2)
+        TaskItem.objects.filter(pk=self.local(task_id).pk).update(changed_date=edited_at)
+
+        self.run_sync()
+
+        task = TaskItem.objects.get(pk=self.local(task_id).pk)
+        self.assertEqual(task.created_date, datetime(2026, 2, 1, 9, 0, tzinfo=UTC))
+        self.assertEqual(task.changed_date, edited_at)
+
+    def test_backfill_happens_once(self):
+        task_id, _ = self.import_as_before_the_fix()
+        self.run_sync()
+        later = timezone.now() + timedelta(days=1)
+        TaskItem.objects.filter(pk=self.local(task_id).pk).update(changed_date=later)
+
+        self.run_sync()
+
+        self.assertEqual(TaskItem.objects.get(pk=self.local(task_id).pk).changed_date, later)
 
 
 class RemoteChangeTests(SyncTestCase):
