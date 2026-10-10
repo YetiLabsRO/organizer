@@ -67,6 +67,11 @@ Only tasks **personally assigned** to you come in. Tasks you only reported or wa
 assigned only to a team you belong to, do not. Finished tasks are imported too (as completed, with
 their last VolunHub change as the completion date).
 
+Imported tasks keep VolunHub's **created** and **last changed** dates, so they sit in the task list
+(newest change first) and in the statistics where they belong rather than in one block dated to the
+import. Tasks imported before this was the case are corrected on the next sync; one you have edited
+here since keeps its newer "last changed" date.
+
 | Organizer | VolunHub | Notes |
 | --- | --- | --- |
 | Title | `title` | |

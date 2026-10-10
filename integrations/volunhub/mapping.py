@@ -193,3 +193,16 @@ def project_ref(remote):
     if project_id is None:
         return None
     return project_id, remote.get("project_slug") or "", remote.get("project_name") or ""
+
+
+def remote_timestamps(remote):
+    """VolunHub's ``(created_date, changed_date)`` as aware datetimes (either may be None).
+
+    Not synced fields — they are copied onto an imported task so it sorts and counts by when it was
+    created and last changed in VolunHub, not by when Organizer happened to import it.
+    """
+    created = parse_datetime(remote.get("created_date") or "")
+    changed = parse_datetime(remote.get("changed_date") or "")
+    if created is not None and changed is not None and changed < created:
+        changed = created
+    return created, changed
